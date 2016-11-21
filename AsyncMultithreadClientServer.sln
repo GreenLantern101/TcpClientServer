@@ -1,0 +1,24 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+# SharpDevelop 5.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Server\Server.csproj", "{70965948-673A-4989-B505-EA1F7EE1926F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{51B0F658-CF28-4313-B717-4E5809272D48}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{70965948-673A-4989-B505-EA1F7EE1926F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70965948-673A-4989-B505-EA1F7EE1926F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70965948-673A-4989-B505-EA1F7EE1926F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70965948-673A-4989-B505-EA1F7EE1926F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51B0F658-CF28-4313-B717-4E5809272D48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51B0F658-CF28-4313-B717-4E5809272D48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51B0F658-CF28-4313-B717-4E5809272D48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51B0F658-CF28-4313-B717-4E5809272D48}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
