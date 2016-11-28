@@ -15,8 +15,7 @@ namespace AsyncMultithreadClientServer
 		private TcpListener _listener;
 
 		// Clients objects
-		private List<TcpClient> _clients = new List<TcpClient>();
-		private List<TcpClient> _waitingLobby = new List<TcpClient>();
+		private TcpClient _networkedClient = null;
 
 		// Game stuff
 		private Dictionary<TcpClient, IGame> _gameClientIsIn = new Dictionary<TcpClient, IGame>();
@@ -55,7 +54,6 @@ namespace AsyncMultithreadClientServer
 		{
 			Console.WriteLine("Starting the \"{0}\" server on port {1}.", Name, Port); 
 			Console.WriteLine("Press Ctrl-C to shutdown the server at any time.");
-
 			
 
 			// Start running the server
@@ -65,29 +63,21 @@ namespace AsyncMultithreadClientServer
 			Console.WriteLine("Waiting for incoming connections...");
 
 			while (Running) {
+				bool newconnection = false;
 				// Handle any new clients
-				if (_listener.Pending())
+				if (_listener.Pending()) {
 					newConnectionTasks.Add(_handleNewConnection());
-
-				//If a game is not currently running
-				if (_waitingLobby.Count > 0 && _currentGame == null) {
+					newconnection = true;
+				}
 					
-					//set current game to new game
-					_currentGame = new GuessMyNumberGame(this);
-			
-					// Get that many players from the waiting lobby and start the game
-					int numPlayers = 0;
-					while (numPlayers < _currentGame.RequiredPlayers) {
-						// Pop the first one off
-						TcpClient player = _waitingLobby[0];
-						_waitingLobby.RemoveAt(0);
+				//If noone connected yet...
+				if (newconnection) {
 
-						// Try adding it to the game. If failure, put it back in the lobby
-						if (_currentGame.AddPlayer(player))
-							numPlayers++;
-						else
-							_waitingLobby.Add(player);
-					}
+					//start new game
+					_currentGame = new GuessMyNumberGame(this);
+					//add networked player to game
+					_currentGame.AddPlayer(_networkedClient);
+					
 
 					// Start the game in a new thread!
 					Console.WriteLine("Starting a \"{0}\" game.", _currentGame.Name);
@@ -96,31 +86,8 @@ namespace AsyncMultithreadClientServer
 
 					// Create a new game
 					_currentGame = new GuessMyNumberGame(this);
-				}
-
-				// Check if any clients have disconnected in waiting, gracefully or not
-				// NOTE: This could (and should) be parallelized
-				foreach (TcpClient client in _waitingLobby.ToArray()) {
-					EndPoint endPoint = client.Client.RemoteEndPoint;
-					bool disconnected = false;
-
-					// Check for graceful first
-					Packet p = ReceivePacket(client).GetAwaiter().GetResult();
-					//disconnected = (p?.Command == "bye");
 					
-					if (p == null || p.Command == "bye")
-						disconnected = true;
-
-					// Then ungraceful
-					disconnected |= IsDisconnected(client);
-
-					if (disconnected) {
-						HandleDisconnectedClient(client);
-						Console.WriteLine("Client {0} has disconnected from the Game(s) Server.", endPoint);
-					}
 				}
-
-
 				// Take a small nap
 				Thread.Sleep(10);
 			}
@@ -129,12 +96,12 @@ namespace AsyncMultithreadClientServer
 			Task.WaitAll(newConnectionTasks.ToArray(), 1000);
 
 			// Shutdown all of the threads, regardless if they are done or not
-			gameThread.Abort();
+			if(gameThread != null)
+				gameThread.Abort();
 
-			// Disconnect any clients still here
-			Parallel.ForEach(_clients, (client) => {
-				DisconnectClient(client, "The server is shutting down.");
-			});            
+			// Disconnect any clients remaining
+			if(_networkedClient != null)
+				DisconnectClient(_networkedClient, "The server is shutting down.");
 
 			// Cleanup our resources
 			_listener.Stop();
@@ -143,24 +110,20 @@ namespace AsyncMultithreadClientServer
 			Console.WriteLine("The server has been shut down.");
 		}
 
-		// Awaits for a new connection and then adds them to the waiting lobby
+		// Awaits for a new connection, sets it to networked client
 		private async Task _handleNewConnection()
 		{
 			// Get the new client using a Future
-			TcpClient newClient = await _listener.AcceptTcpClientAsync();
-			Console.WriteLine("New connection from {0}.", newClient.Client.RemoteEndPoint);
-
-			// Store them and put them in the waiting lobby
-			_clients.Add(newClient);
-			_waitingLobby.Add(newClient);
+			this._networkedClient = await _listener.AcceptTcpClientAsync();
+			Console.WriteLine("New connection from {0}.", _networkedClient.Client.RemoteEndPoint);
 
 			// Send a welcome message
-			string msg = String.Format("Welcome to the \"{0}\" Games Server.\n", Name);
-			await SendPacket(newClient, new Packet("message", msg));
+			string msg = String.Format("Welcome to the \"{0}\" server.\n", Name);
+			await SendPacket(_networkedClient, new Packet("message", msg));
 		}
 
 		// Will attempt to gracefully disconnect a TcpClient
-		// This should be use for clients that may be in a game, or the waiting lobby
+		// used for in-game clients
 		public void DisconnectClient(TcpClient client, string message = "")
 		{
 			Console.WriteLine("Disconnecting the client from {0}.", client.Client.RemoteEndPoint);
@@ -177,6 +140,7 @@ namespace AsyncMultithreadClientServer
 				if (_gameClientIsIn.ContainsKey(client))
 					this.DisconnectClient(client);
 			} catch (KeyNotFoundException) {
+				Console.WriteLine("KEY NOT FOUND");
 			}
 
 			// Give the client some time to send and proccess the graceful disconnect
@@ -188,13 +152,12 @@ namespace AsyncMultithreadClientServer
 		}
 
 		// Cleans up the resources if a client has disconnected,
-		// gracefully or not.  Will remove them from clint list and lobby
+		// gracefully or not.
 		public void HandleDisconnectedClient(TcpClient client)
 		{
-			// Remove from collections and free resources
-			_clients.Remove(client);
-			_waitingLobby.Remove(client);
 			_cleanupClient(client);
+			//this._networkedClient = null;
+			
 		}
 		// cleans up resources for a TcpClient and closes it
 		private static void _cleanupClient(TcpClient client)

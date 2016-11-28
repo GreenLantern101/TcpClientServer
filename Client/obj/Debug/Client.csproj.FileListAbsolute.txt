@@ -1,0 +1,13 @@
+C:\Users\Apache\Documents\SharpDevelop Projects\AsyncMultithreadClientServer\Client\obj\Debug\Client.csprojResolveAssemblyReference.cache
+C:\Users\Apache\Documents\SharpDevelop Projects\AsyncMultithreadClientServer\Client\bin\Debug\Client.exe.config
+C:\Users\Apache\Documents\SharpDevelop Projects\AsyncMultithreadClientServer\Client\bin\Debug\Client.exe
+C:\Users\Apache\Documents\SharpDevelop Projects\AsyncMultithreadClientServer\Client\bin\Debug\Client.pdb
+C:\Users\Apache\Documents\SharpDevelop Projects\AsyncMultithreadClientServer\Client\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Apache\Documents\SharpDevelop Projects\AsyncMultithreadClientServer\Client\obj\Debug\Client.exe
+C:\Users\Apache\Documents\SharpDevelop Projects\AsyncMultithreadClientServer\Client\obj\Debug\Client.pdb
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\bin\Debug\Client.exe.config
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\bin\Debug\Client.exe
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\bin\Debug\Client.pdb
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\obj\Debug\Client.csprojResolveAssemblyReference.cache
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\obj\Debug\Client.exe
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\obj\Debug\Client.pdb
