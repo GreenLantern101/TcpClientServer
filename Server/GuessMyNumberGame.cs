@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace AsyncMultithreadClientServer
 {
-	public class GuessMyNumberGame : IGame
+	public class Game
 	{
 		// Objects for the game
 		private TcpGamesServer _server;
@@ -24,7 +24,7 @@ namespace AsyncMultithreadClientServer
 		}
                 
 		// Constructor
-		public GuessMyNumberGame(TcpGamesServer server)
+		public Game(TcpGamesServer server)
 		{
 			_server = server;
 			_rng = new Random();

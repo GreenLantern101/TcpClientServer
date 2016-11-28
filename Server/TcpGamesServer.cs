@@ -13,14 +13,15 @@ namespace AsyncMultithreadClientServer
 	{
 		// Listens for new incoming connections
 		private TcpListener _listener;
+		
+		private IPAddress ip_me;
 
 		// Clients objects
 		private TcpClient _networkedClient = null;
 
 		// Game stuff
-		private Dictionary<TcpClient, IGame> _gameClientIsIn = new Dictionary<TcpClient, IGame>();
 		private Thread gameThread = null;
-		private IGame _currentGame = null;
+		private Game _currentGame = null;
 
 		// Other data
 		public readonly string Name;
@@ -35,9 +36,24 @@ namespace AsyncMultithreadClientServer
 			Port = 32887;
 			Running = false;
 			
-			
 			// Create the listener, listening at any ip address
 			_listener = new TcpListener(IPAddress.Any, Port);
+			//_listener = new TcpListener(GetLocalIPAddress(), Port);
+		}
+		/// <summary>
+		/// returns the private network IP address of server
+		/// </summary>
+		/// <returns></returns>
+		public static IPAddress GetLocalIPAddress()
+		{
+			var host = Dns.GetHostEntry(Dns.GetHostName());
+			foreach (var ip in host.AddressList) {
+				if (ip.AddressFamily == AddressFamily.InterNetwork) {
+					Console.WriteLine("IP: " + ip.ToString());
+					return ip;
+				}
+			}
+			throw new Exception("Local IP Address Not Found!");
 		}
 
 		// Shutsdown the server if its running
@@ -74,7 +90,7 @@ namespace AsyncMultithreadClientServer
 				if (newconnection) {
 
 					//start new game
-					_currentGame = new GuessMyNumberGame(this);
+					_currentGame = new Game(this);
 					//add networked player to game
 					_currentGame.AddPlayer(_networkedClient);
 					
@@ -85,7 +101,7 @@ namespace AsyncMultithreadClientServer
 					gameThread.Start();
 
 					// Create a new game
-					_currentGame = new GuessMyNumberGame(this);
+					_currentGame = new Game(this);
 					
 				}
 				// Take a small nap
@@ -96,11 +112,11 @@ namespace AsyncMultithreadClientServer
 			Task.WaitAll(newConnectionTasks.ToArray(), 1000);
 
 			// Shutdown all of the threads, regardless if they are done or not
-			if(gameThread != null)
+			if (gameThread != null)
 				gameThread.Abort();
 
 			// Disconnect any clients remaining
-			if(_networkedClient != null)
+			if (_networkedClient != null)
 				DisconnectClient(_networkedClient, "The server is shutting down.");
 
 			// Cleanup our resources
@@ -134,14 +150,6 @@ namespace AsyncMultithreadClientServer
 
 			// Send the "bye," message
 			Task byePacket = SendPacket(client, new Packet("bye", message));
-
-			// Notify a game that might have them
-			try {
-				if (_gameClientIsIn.ContainsKey(client))
-					this.DisconnectClient(client);
-			} catch (KeyNotFoundException) {
-				Console.WriteLine("KEY NOT FOUND");
-			}
 
 			// Give the client some time to send and proccess the graceful disconnect
 			Thread.Sleep(2000);
@@ -186,7 +194,7 @@ namespace AsyncMultithreadClientServer
 				//Console.WriteLine("[SENT]\n{0}", packet);
 			} catch (Exception e) {
 				// There was an issue is sending
-				Console.WriteLine("There was an issue receiving a packet.");
+				Console.WriteLine("There was an issue sending a packet.");
 				Console.WriteLine("Reason: {0}", e.Message);
 			}
 		}
@@ -220,7 +228,7 @@ namespace AsyncMultithreadClientServer
 				//Console.WriteLine("[RECEIVED]\n{0}", packet);
 			} catch (Exception e) {
 				// There was an issue in receiving
-				Console.WriteLine("There was an issue sending a packet to {0}.", client.Client.RemoteEndPoint);
+				Console.WriteLine("There was an issue receiving a packet from {0}.", client.Client.RemoteEndPoint);
 				Console.WriteLine("Reason: {0}", e.Message);
 			}
 

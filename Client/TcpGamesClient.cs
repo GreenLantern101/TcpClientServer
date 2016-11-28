@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Client
 {
@@ -14,7 +15,7 @@ namespace Client
 		// Connection objects
 		public readonly string ServerAddress;
 		public readonly int Port;
-		IPAddress ipAddress_me;
+		IPAddress ipAddress_other;
 		public bool Running { get; private set; }
 		private TcpClient _client;
 		private bool _clientRequestedDisconnect = false;
@@ -31,19 +32,12 @@ namespace Client
 
 			// Set other data
 			ServerAddress = "localhost";
-			
-			string hostname = Dns.GetHostName();
-			//more robust than hard-coding
-			IPHostEntry ipHost = Dns.GetHostEntry(hostname);
-			
-			//IPv6 format
-			//list of IP addresses that are associated with a host
-			ipAddress_me = ipHost.AddressList[0];
-			Console.WriteLine(ipHost.AddressList);
+			//is the same as localhost: (local ip using "ipconfig" in cmd)
+			ipAddress_other = IPAddress.Parse("10.66.178.65");
 			
 			//because AddressList[0] is IPv6, while server requests IPv4
-			//_client = new TcpClient(ipAddress_me.AddressFamily);
-			_client = new TcpClient();
+			_client = new TcpClient(ipAddress_other.AddressFamily);
+			//_client = new TcpClient();
 			
 			Port = 32887;
 		}
@@ -61,12 +55,17 @@ namespace Client
 		// Connects to the games server
 		public void Connect()
 		{
-			// Connect to the server
-			try {
-				_client.Connect(ServerAddress, Port);   // Resolves DNS
-				//_client.Connect(ipAddress_me, Port);
-			} catch (SocketException se) {
-				Console.WriteLine("[ERROR] {0}", se.Message);
+			//keep trying to connect to server, once per second
+			while (!_client.Connected) {
+				// Connect to the server
+				try {
+					//_client.Connect(ServerAddress, Port);   // Resolves DNS
+					_client.Connect(ipAddress_other, Port);
+				} catch (SocketException se) {
+					Console.WriteLine("[ERROR] {0}", se.Message);
+				}
+				Thread.Sleep(3000);
+				Console.WriteLine("Failed to connect. Trying again.");
 			}
 
 			// check that we've connected
@@ -78,18 +77,10 @@ namespace Client
 				// Get the message stream
 				_msgStream = _client.GetStream();
 
-				// Hook up some packet command handlers
+				// Hook up packet command handlers
 				_commandHandlers["bye"] = _handleBye;
 				_commandHandlers["message"] = _handleMessage;
 				_commandHandlers["input"] = _handleInput;
-			} else {
-				//error connecting
-				Console.WriteLine("Unable to connect to the server at {0}:{1}.", ServerAddress, Port);
-				Console.WriteLine("Closing client...");
-				
-				//small pause
-				Thread.Sleep(3000);
-				_cleanupNetworkResources();
 			}
 		}
 
@@ -160,7 +151,7 @@ namespace Client
 		private async Task _handleIncomingPackets()
 		{
 			try {
-				// Check for new incomding messages
+				// Check for new incoming messages
 				if (_client.Available > 0) {
 					// There must be some incoming data, the first two bytes are the size of the Packet
 					byte[] lengthBuffer = new byte[2];

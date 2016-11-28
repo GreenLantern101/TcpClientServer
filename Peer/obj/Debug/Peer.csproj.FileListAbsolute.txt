@@ -1,0 +1,6 @@
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Peer\bin\Debug\Peer.exe.config
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Peer\bin\Debug\Peer.exe
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Peer\bin\Debug\Peer.pdb
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Peer\obj\Debug\Peer.csprojResolveAssemblyReference.cache
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Peer\obj\Debug\Peer.exe
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Peer\obj\Debug\Peer.pdb
