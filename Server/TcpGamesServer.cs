@@ -20,9 +20,8 @@ namespace AsyncMultithreadClientServer
 
 		// Game stuff
 		private Dictionary<TcpClient, IGame> _gameClientIsIn = new Dictionary<TcpClient, IGame>();
-		private List<IGame> _games = new List<IGame>();
-		private List<Thread> _gameThreads = new List<Thread>();
-		private IGame _nextGame;
+		private Thread gameThread = null;
+		private IGame _currentGame = null;
 
 		// Other data
 		public readonly string Name;
@@ -34,11 +33,11 @@ namespace AsyncMultithreadClientServer
 		{
 			// Set some of the basic data
 			Name = "SERVER_ONE";
-			Port = 6000;
+			Port = 32887;
 			Running = false;
 			
 			
-			// Create the listener
+			// Create the listener, listening at any ip address
 			_listener = new TcpListener(IPAddress.Any, Port);
 		}
 
@@ -47,56 +46,56 @@ namespace AsyncMultithreadClientServer
 		{
 			if (Running) {
 				Running = false;
-				Console.WriteLine("Shutting down the Game(s) Server...");
+				Console.WriteLine("Shutting down server...");
 			}
 		}
 
 		// The main loop for the games server
 		public void Run()
 		{
-			Console.WriteLine("Starting the \"{0}\" Game(s) Server on port {1}.", Name, Port); 
+			Console.WriteLine("Starting the \"{0}\" server on port {1}.", Name, Port); 
 			Console.WriteLine("Press Ctrl-C to shutdown the server at any time.");
 
-			// Start the next game
-			// (current only the Guess My Number Game)
-			_nextGame = new GuessMyNumberGame(this);
+			
 
 			// Start running the server
 			_listener.Start();
 			Running = true;
 			List<Task> newConnectionTasks = new List<Task>();
-			Console.WriteLine("Waiting for incomming connections...");
+			Console.WriteLine("Waiting for incoming connections...");
 
 			while (Running) {
 				// Handle any new clients
 				if (_listener.Pending())
 					newConnectionTasks.Add(_handleNewConnection());
 
-				// Once we have enough clients for the next game, add them in and start the game
-				if (_waitingLobby.Count >= _nextGame.RequiredPlayers) {
+				//If a game is not currently running
+				if (_waitingLobby.Count > 0 && _currentGame == null) {
+					
+					//set current game to new game
+					_currentGame = new GuessMyNumberGame(this);
+			
 					// Get that many players from the waiting lobby and start the game
 					int numPlayers = 0;
-					while (numPlayers < _nextGame.RequiredPlayers) {
+					while (numPlayers < _currentGame.RequiredPlayers) {
 						// Pop the first one off
 						TcpClient player = _waitingLobby[0];
 						_waitingLobby.RemoveAt(0);
 
-						// Try adding it to the game.  If failure, put it back in the lobby
-						if (_nextGame.AddPlayer(player))
+						// Try adding it to the game. If failure, put it back in the lobby
+						if (_currentGame.AddPlayer(player))
 							numPlayers++;
 						else
 							_waitingLobby.Add(player);
 					}
 
 					// Start the game in a new thread!
-					Console.WriteLine("Starting a \"{0}\" game.", _nextGame.Name);
-					Thread gameThread = new Thread(new ThreadStart(_nextGame.Run));
+					Console.WriteLine("Starting a \"{0}\" game.", _currentGame.Name);
+					this.gameThread = new Thread(new ThreadStart(_currentGame.Run));
 					gameThread.Start();
-					_games.Add(_nextGame);
-					_gameThreads.Add(gameThread);
 
 					// Create a new game
-					_nextGame = new GuessMyNumberGame(this);
+					_currentGame = new GuessMyNumberGame(this);
 				}
 
 				// Check if any clients have disconnected in waiting, gracefully or not
@@ -109,7 +108,8 @@ namespace AsyncMultithreadClientServer
 					Packet p = ReceivePacket(client).GetAwaiter().GetResult();
 					//disconnected = (p?.Command == "bye");
 					
-					if(p==null || p.Command == "bye") disconnected = true;
+					if (p == null || p.Command == "bye")
+						disconnected = true;
 
 					// Then ungraceful
 					disconnected |= IsDisconnected(client);
@@ -129,12 +129,11 @@ namespace AsyncMultithreadClientServer
 			Task.WaitAll(newConnectionTasks.ToArray(), 1000);
 
 			// Shutdown all of the threads, regardless if they are done or not
-			foreach (Thread thread in _gameThreads)
-				thread.Abort();
+			gameThread.Abort();
 
 			// Disconnect any clients still here
 			Parallel.ForEach(_clients, (client) => {
-				DisconnectClient(client, "The Game(s) Server is being shutdown.");
+				DisconnectClient(client, "The server is shutting down.");
 			});            
 
 			// Cleanup our resources
@@ -175,7 +174,8 @@ namespace AsyncMultithreadClientServer
 
 			// Notify a game that might have them
 			try {
-				if(_gameClientIsIn.ContainsKey(client)) this.DisconnectClient(client);
+				if (_gameClientIsIn.ContainsKey(client))
+					this.DisconnectClient(client);
 			} catch (KeyNotFoundException) {
 			}
 
@@ -195,6 +195,12 @@ namespace AsyncMultithreadClientServer
 			_clients.Remove(client);
 			_waitingLobby.Remove(client);
 			_cleanupClient(client);
+		}
+		// cleans up resources for a TcpClient and closes it
+		private static void _cleanupClient(TcpClient client)
+		{
+			client.GetStream().Close();     // Close network stream
+			client.Close();                 // Close client
 		}
 
 		#region Packet Transmission Methods
@@ -273,12 +279,7 @@ namespace AsyncMultithreadClientServer
 			}
 		}
 
-		// cleans up resources for a TcpClient and closes it
-		private static void _cleanupClient(TcpClient client)
-		{
-			client.GetStream().Close();     // Close network stream
-			client.Close();                 // Close client
-		}
+		
 		#endregion // TcpClient Helper Methods
 
 
@@ -292,7 +293,7 @@ namespace AsyncMultithreadClientServer
 		public static void InterruptHandler(object sender, ConsoleCancelEventArgs args)
 		{
 			args.Cancel = true;
-			if(gamesServer!=null)
+			if (gamesServer != null)
 				gamesServer.Shutdown();
 		}
 

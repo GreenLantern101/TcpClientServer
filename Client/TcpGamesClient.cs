@@ -39,12 +39,13 @@ namespace Client
 			//IPv6 format
 			//list of IP addresses that are associated with a host
 			ipAddress_me = ipHost.AddressList[0];
+			Console.WriteLine(ipHost.AddressList);
 			
 			//because AddressList[0] is IPv6, while server requests IPv4
 			//_client = new TcpClient(ipAddress_me.AddressFamily);
 			_client = new TcpClient();
 			
-			Port = 6000;
+			Port = 32887;
 		}
 
 		// Cleans up any leftover network resources
@@ -84,6 +85,8 @@ namespace Client
 				//error connecting
 				Console.WriteLine("Unable to connect to the server at {0}:{1}.", ServerAddress, Port);
 				Console.WriteLine("Closing client...");
+				
+				//small pause
 				Thread.Sleep(3000);
 				// Nope...
 				_cleanupNetworkResources();
