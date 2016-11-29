@@ -92,32 +92,6 @@ namespace AsyncMultithreadClientServer
 			_sendPacket(new Packet("bye")).GetAwaiter().GetResult();
 		}
 
-
-		public void Run()
-		{
-			bool wasRunning = Running;
-
-			// Listen for messages
-			List<Task> tasks = new List<Task>();
-			while (Running) {
-				// Check for new packets
-				tasks.Add(_handleIncomingPackets());
-
-				// Make sure that we didn't have a graceless disconnect
-				if (_isDisconnected(_client) && !_clientRequestedDisconnect) {
-					Running = false;
-					Console.WriteLine("The server has disconnected from us ungracefully.");
-					Thread.Sleep(3000);
-				}
-			}
-
-			// Just incase we have anymore packets, give them one second to be processed
-			Task.WaitAll(tasks.ToArray(), 1000);
-
-			// Cleanup
-			_cleanupNetworkResources();
-		}
-
 		// Sends packets to the server asynchronously
 		private async Task _sendPacket(Packet packet)
 		{

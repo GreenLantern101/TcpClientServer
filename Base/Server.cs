@@ -87,11 +87,8 @@ namespace AsyncMultithreadClientServer
 			gamesClient.Connect();
 			
 			
-			//------------------------------------------------- run server
+			//------------------------------------------------- run server & client
 			this.Run();
-			
-			//------------------------------------------------- run client
-			gamesClient.Run();
 		}
 
 		// The main loop for the games server
@@ -141,7 +138,9 @@ namespace AsyncMultithreadClientServer
 					Console.WriteLine("The server has disconnected from us ungracefully.");
 					Thread.Sleep(3000);
 				}
-				// Take a small nap
+				
+				
+				//--------------------------------------------------- Take a small nap
 				Thread.Sleep(10);
 			}
 
