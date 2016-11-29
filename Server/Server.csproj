@@ -51,8 +51,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="GuessMyNumberGame.cs" />
-    <Compile Include="IsClientDisconnected.cs" />
+    <Compile Include="Game.cs" />
     <Compile Include="Packet.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TcpGamesServer.cs" />

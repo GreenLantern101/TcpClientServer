@@ -63,9 +63,9 @@ namespace Client
 					_client.Connect(ipAddress_other, Port);
 				} catch (SocketException se) {
 					Console.WriteLine("[ERROR] {0}", se.Message);
+					Thread.Sleep(3000);
+					Console.WriteLine("Failed to connect. Trying again.");
 				}
-				Thread.Sleep(3000);
-				Console.WriteLine("Failed to connect. Trying again.");
 			}
 
 			// check that we've connected
