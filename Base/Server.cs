@@ -16,7 +16,7 @@ namespace AsyncMultithreadClientServer
 		private IPAddress ip_me;
 
 		// Clients objects
-		public Client gamesClient;
+		public Client client;
 		private TcpClient _tcpClient = null;
 
 		// Game stuff
@@ -38,12 +38,9 @@ namespace AsyncMultithreadClientServer
 			
 			// Create the listener, listening at any ip address
 			_listener = new TcpListener(IPAddress.Any, Port);
-			//_listener = new TcpListener(GetLocalIPAddress(), Port);
 		}
-		/// <summary>
-		/// returns the private network IP address of server
-		/// </summary>
-		/// <returns></returns>
+		
+		// returns the private network IP address of server
 		public static IPAddress GetLocalIPAddress()
 		{
 			var host = Dns.GetHostEntry(Dns.GetHostName());
@@ -65,8 +62,8 @@ namespace AsyncMultithreadClientServer
 			}
 			
 			// gracefully disconnect client...
-			if (gamesClient != null)
-				gamesClient.Disconnect();
+			if (client != null)
+				client.Disconnect();
 		}
 		public void Start()
 		{
@@ -77,15 +74,12 @@ namespace AsyncMultithreadClientServer
 			// Start running the server
 			_listener.Start();
 			Running = true;
-			
 			Console.WriteLine("Waiting for incoming connections...");
 
 			//------------------------------------------------- start client
-			gamesClient = new Client();
+			client = new Client();
 			//connect game client...
-			gamesClient.Connect();
-			
-			
+			client.Connect();
 			//------------------------------------------------- run server & client
 			this.Run();
 		}
@@ -128,11 +122,11 @@ namespace AsyncMultithreadClientServer
 				//------------------------------------------------- client run cycle
 				
 				// Check for new packets
-				messagetasks.Add(this.gamesClient._handleIncomingPackets());
+				messagetasks.Add(this.client._handleIncomingPackets());
 
 				// Make sure that we didn't have a graceless disconnect
-				if (Client._isDisconnected(this.gamesClient._client) 
-				    && !this.gamesClient._clientRequestedDisconnect) {
+				if (IsDisconnected(this.client.tcpClient) 
+				    && !this.client._clientRequestedDisconnect) {
 					Running = false;
 					Console.WriteLine("The server has disconnected from us ungracefully.");
 					Thread.Sleep(3000);
@@ -152,7 +146,7 @@ namespace AsyncMultithreadClientServer
 				gameThread.Abort();
 
 			// Disconnect any clients remaining
-			if (_tcpClient != null)
+			if (_tcpClient != null && _tcpClient.Connected)
 				DisconnectClient(_tcpClient, "The server is shutting down.");
 
 			// Cleanup our resources
@@ -167,7 +161,7 @@ namespace AsyncMultithreadClientServer
 			Task.WaitAll(messagetasks.ToArray(), 1000);
 
 			// Cleanup
-			this.gamesClient._cleanupNetworkResources();
+			this.client._cleanupNetworkResources();
 		}
 
 		// Awaits for a new connection, sets it to networked client
@@ -259,7 +253,6 @@ namespace AsyncMultithreadClientServer
 				return true;
 			}
 		}
-
 		
 		#endregion // TcpClient Helper Methods
 

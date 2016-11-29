@@ -8,13 +8,13 @@ using System.Collections.Generic;
 
 namespace AsyncMultithreadClientServer
 {
+	//is essentially a wrapper over TcpClient
 	public class Client
 	{
 		// Connection objects
-		public readonly string ServerAddress;
 		public readonly int Port;
 		IPAddress ipAddress_other;
-		public TcpClient _client;
+		public TcpClient tcpClient;
 		public bool _clientRequestedDisconnect = false;
 
 		// Messaging
@@ -24,14 +24,11 @@ namespace AsyncMultithreadClientServer
 		public Client()
 		{
            
-			// Set other data
-			ServerAddress = "localhost";
 			//is the same as localhost: (local ip using "ipconfig" in cmd)
 			ipAddress_other = IPAddress.Parse("10.66.178.65");
 			
 			//because AddressList[0] is IPv6, while server requests IPv4
-			_client = new TcpClient(ipAddress_other.AddressFamily);
-			//_client = new TcpClient();
+			tcpClient = new TcpClient(ipAddress_other.AddressFamily);
 			
 			Port = 32887;
 		}
@@ -43,32 +40,31 @@ namespace AsyncMultithreadClientServer
 			if (_msgStream != null)
 				_msgStream.Close();
 			_msgStream = null;
-			_client.Close();
+			tcpClient.Close();
 		}
 
 		// Connects to the games server
 		public void Connect()
 		{
 			//keep trying to connect to server, once per second
-			while (!_client.Connected) {
+			while (!tcpClient.Connected) {
 				// Connect to the server
 				try {
-					//_client.Connect(ServerAddress, Port);   // Resolves DNS
-					_client.Connect(ipAddress_other, Port);
+					tcpClient.Connect(ipAddress_other, Port);
 				} catch (SocketException se) {
 					Console.WriteLine("[ERROR] {0}", se.Message);
-					Thread.Sleep(3000);
 					Console.WriteLine("Failed to connect. Trying again.");
+					Thread.Sleep(3000);
 				}
 			}
 
 			// check that we've connected
-			if (_client.Connected) {
+			if (tcpClient.Connected) {
 				// Connected!
-				Console.WriteLine("Connected to the server at {0}.", _client.Client.RemoteEndPoint);
+				Console.WriteLine("Connected to the server at {0}.", tcpClient.Client.RemoteEndPoint);
 
 				// Get the message stream
-				_msgStream = _client.GetStream();
+				_msgStream = tcpClient.GetStream();
 
 				// Hook up packet command handlers
 				_commandHandlers["bye"] = _handleBye;
@@ -92,7 +88,7 @@ namespace AsyncMultithreadClientServer
 		{
 			try {
 				// Check for new incoming messages
-				if (_client.Available > 0) {
+				if (tcpClient.Available > 0) {
 					
 					Packet packet = Packet.getPacketFromStream(_msgStream);
 
@@ -136,20 +132,5 @@ namespace AsyncMultithreadClientServer
 			await Packet.SendPacket(this._msgStream, resp);
 		}
 		#endregion // Command Handlers
-
-		#region TcpClient Helper Methods
-		// Checks if a client has disconnected ungracefully
-		// Adapted from: http://stackoverflow.com/questions/722240/instantly-detect-client-disconnection-from-server-socket
-		public static bool _isDisconnected(TcpClient client)
-		{
-			try {
-				Socket s = client.Client;
-				return s.Poll(10 * 1000, SelectMode.SelectRead) && (s.Available == 0);
-			} catch (SocketException) {
-				// We got a socket error, assume it's disconnected
-				return true;
-			}
-		}
-		#endregion // TcpClient Helper Methods
 	}
 }
