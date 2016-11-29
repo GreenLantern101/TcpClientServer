@@ -96,15 +96,7 @@ namespace AsyncMultithreadClientServer
 		private async Task _sendPacket(Packet packet)
 		{
 			try {                
-				// convert JSON to buffer and its length to a 16 bit unsigned integer buffer
-				byte[] jsonBuffer = Encoding.UTF8.GetBytes(packet.ToJson());
-				byte[] lengthBuffer = BitConverter.GetBytes(Convert.ToUInt16(jsonBuffer.Length));
-
-				// Join the buffers
-				byte[] packetBuffer = new byte[lengthBuffer.Length + jsonBuffer.Length];
-				lengthBuffer.CopyTo(packetBuffer, 0);
-				jsonBuffer.CopyTo(packetBuffer, lengthBuffer.Length);
-
+				byte[] packetBuffer = packet.getPacketBuffer();
 				// Send the packet
 				await _msgStream.WriteAsync(packetBuffer, 0, packetBuffer.Length);
 
@@ -114,24 +106,14 @@ namespace AsyncMultithreadClientServer
 		}
 
 		// Checks for new incoming messages and handles them
-		// This method will handle one Packet at a time, even if more than one is in the memory stream
+		// Handles one Packet at a time, even if more than one is in the memory stream
 		public async Task _handleIncomingPackets()
 		{
 			try {
 				// Check for new incoming messages
 				if (_client.Available > 0) {
-					// There must be some incoming data, the first two bytes are the size of the Packet
-					byte[] lengthBuffer = new byte[2];
-					await _msgStream.ReadAsync(lengthBuffer, 0, 2);
-					ushort packetByteSize = BitConverter.ToUInt16(lengthBuffer, 0);
-
-					// Now read that many bytes from what's left in the stream, it must be the Packet
-					byte[] jsonBuffer = new byte[packetByteSize];
-					await _msgStream.ReadAsync(jsonBuffer, 0, jsonBuffer.Length);
-
-					// Convert it into a packet datatype
-					string jsonString = Encoding.UTF8.GetString(jsonBuffer);
-					Packet packet = Packet.FromJson(jsonString);
+					
+					Packet packet = Packet.getPacketFromStream(_msgStream);
 
 					// Dispatch it
 					try {

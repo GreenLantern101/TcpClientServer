@@ -224,17 +224,9 @@ namespace AsyncMultithreadClientServer
 		public async Task SendPacket(TcpClient client, Packet packet)
 		{
 			try {
-				// convert JSON to buffer and its length to a 16 bit unsigned integer buffer
-				byte[] jsonBuffer = Encoding.UTF8.GetBytes(packet.ToJson());
-				byte[] lengthBuffer = BitConverter.GetBytes(Convert.ToUInt16(jsonBuffer.Length));
-
-				// Join the buffers
-				byte[] msgBuffer = new byte[lengthBuffer.Length + jsonBuffer.Length];
-				lengthBuffer.CopyTo(msgBuffer, 0);
-				jsonBuffer.CopyTo(msgBuffer, lengthBuffer.Length);
-
+				byte[] packetBuffer = packet.getPacketBuffer();
 				// Send the packet
-				await client.GetStream().WriteAsync(msgBuffer, 0, msgBuffer.Length);
+				await client.GetStream().WriteAsync(packetBuffer, 0, packetBuffer.Length);
 
 				//Console.WriteLine("[SENT]\n{0}", packet);
 			} catch (Exception e) {
@@ -255,20 +247,8 @@ namespace AsyncMultithreadClientServer
 				if (client.Available == 0)
 					return null;
 
-				NetworkStream msgStream = client.GetStream();
-
-				// There must be some incoming data, the first two bytes are the size of the Packet
-				byte[] lengthBuffer = new byte[2];
-				await msgStream.ReadAsync(lengthBuffer, 0, 2);
-				ushort packetByteSize = BitConverter.ToUInt16(lengthBuffer, 0);
-
-				// Now read that many bytes from what's left in the stream, it must be the Packet
-				byte[] jsonBuffer = new byte[packetByteSize];
-				await msgStream.ReadAsync(jsonBuffer, 0, jsonBuffer.Length);
-
-				// Convert it into a packet datatype
-				string jsonString = Encoding.UTF8.GetString(jsonBuffer);
-				packet = Packet.FromJson(jsonString);
+				NetworkStream _msgStream = client.GetStream();
+				packet = Packet.getPacketFromStream(_msgStream);
 
 				//Console.WriteLine("[RECEIVED]\n{0}", packet);
 			} catch (Exception e) {

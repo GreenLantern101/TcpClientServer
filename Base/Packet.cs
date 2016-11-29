@@ -1,5 +1,8 @@
 ﻿
 using System;
+using System.Text;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace AsyncMultithreadClientServer
@@ -38,6 +41,47 @@ namespace AsyncMultithreadClientServer
 		public static Packet FromJson(string jsonData)
 		{
 			return JsonConvert.DeserializeObject<Packet>(jsonData);
+		}
+		
+		public byte[] getPacketBuffer()
+		{
+			// convert JSON to buffer and its length to a 16 bit unsigned integer buffer
+			byte[] jsonBuffer = Encoding.UTF8.GetBytes(this.ToJson());
+			byte[] lengthBuffer = BitConverter.GetBytes(Convert.ToUInt16(jsonBuffer.Length));
+
+			// Join the buffers
+			byte[] packetBuffer = new byte[lengthBuffer.Length + jsonBuffer.Length];
+			lengthBuffer.CopyTo(packetBuffer, 0);
+			jsonBuffer.CopyTo(packetBuffer, lengthBuffer.Length);
+				
+			return packetBuffer;
+		}
+		
+		
+		public static Packet getPacketFromStream(NetworkStream _msgStream)
+		{
+			Task<Packet> getfromstream = Packet.getTaskFromStream(_msgStream);
+			Packet packet = getfromstream.GetAwaiter().GetResult();
+			return packet;
+		}
+		private static async Task<Packet> getTaskFromStream(NetworkStream _msgStream)
+		{
+			Packet packet;
+			
+			// There must be some incoming data, the first two bytes are the size of the Packet
+			byte[] lengthBuffer = new byte[2];
+			await _msgStream.ReadAsync(lengthBuffer, 0, 2);
+			ushort packetByteSize = BitConverter.ToUInt16(lengthBuffer, 0);
+
+			// Now read that many bytes from what's left in the stream, it must be the Packet
+			byte[] jsonBuffer = new byte[packetByteSize];
+			await _msgStream.ReadAsync(jsonBuffer, 0, jsonBuffer.Length);
+
+			// Convert it into a packet datatype
+			string jsonString = Encoding.UTF8.GetString(jsonBuffer);
+			packet = Packet.FromJson(jsonString);
+			
+			return packet;
 		}
 	}
 	
