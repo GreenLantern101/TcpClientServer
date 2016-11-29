@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace AsyncMultithreadClientServer
 {
-	public class TcpGamesServer
+	public class Server
 	{
 		// Listens for new incoming connections
 		private TcpListener _listener;
@@ -17,7 +17,8 @@ namespace AsyncMultithreadClientServer
 		private IPAddress ip_me;
 
 		// Clients objects
-		private TcpClient _networkedClient = null;
+		public Client gamesClient;
+		private TcpClient _tcpClient = null;
 
 		// Game stuff
 		private Thread gameThread = null;
@@ -29,7 +30,7 @@ namespace AsyncMultithreadClientServer
 		public bool Running { get; private set; }
 
 		// Construct to create a new Games Server
-		public TcpGamesServer()
+		public Server()
 		{
 			// Set some of the basic data
 			Name = "SERVER_ONE";
@@ -56,29 +57,55 @@ namespace AsyncMultithreadClientServer
 			throw new Exception("Local IP Address Not Found!");
 		}
 
-		// Shutsdown the server if its running
+		// Shutdown the server if its running
 		public void Shutdown()
 		{
 			if (Running) {
 				Running = false;
 				Console.WriteLine("Shutting down server...");
 			}
+			
+			// gracefully disconnect client...
+			if (gamesClient != null)
+				gamesClient.Disconnect();
+		}
+		public void Start()
+		{
+			//------------------------------------------------ start server
+			Console.WriteLine("Starting the \"{0}\" server on port {1}.", Name, Port); 
+			Console.WriteLine("Press Ctrl-C to shutdown the server at any time.");
+			
+			// Start running the server
+			_listener.Start();
+			Running = true;
+			
+			Console.WriteLine("Waiting for incoming connections...");
+
+			//------------------------------------------------- start client
+			gamesClient = new Client();
+			//connect game client...
+			gamesClient.Connect();
+			
+			
+			//------------------------------------------------- run server
+			this.Run();
+			
+			//------------------------------------------------- run client
+			gamesClient.Run();
 		}
 
 		// The main loop for the games server
 		public void Run()
 		{
-			Console.WriteLine("Starting the \"{0}\" server on port {1}.", Name, Port); 
-			Console.WriteLine("Press Ctrl-C to shutdown the server at any time.");
-			
-
-			// Start running the server
-			_listener.Start();
-			Running = true;
+			//server vars
 			List<Task> newConnectionTasks = new List<Task>();
-			Console.WriteLine("Waiting for incoming connections...");
-
+			
+			//client vars
+			bool wasRunning = Running;
+			List<Task> messagetasks = new List<Task>();
+			
 			while (Running) {
+				//------------------------------------------------- server run cycle
 				bool newconnection = false;
 				// Handle any new clients
 				if (_listener.Pending()) {
@@ -86,14 +113,12 @@ namespace AsyncMultithreadClientServer
 					newconnection = true;
 				}
 					
-				//If noone connected yet...
+				//Start a game for the first new connection
 				if (newconnection) {
-
 					//start new game
 					_currentGame = new Game(this);
 					//add networked player to game
-					_currentGame.AddPlayer(_networkedClient);
-					
+					_currentGame.AddPlayer(_tcpClient);
 
 					// Start the game in a new thread!
 					Console.WriteLine("Starting a \"{0}\" game.", _currentGame.Name);
@@ -102,13 +127,26 @@ namespace AsyncMultithreadClientServer
 
 					// Create a new game
 					_currentGame = new Game(this);
-					
+				}
+				
+				//------------------------------------------------- client run cycle
+				
+				// Check for new packets
+				messagetasks.Add(this.gamesClient._handleIncomingPackets());
+
+				// Make sure that we didn't have a graceless disconnect
+				if (Client._isDisconnected(this.gamesClient._client) 
+				    && !this.gamesClient._clientRequestedDisconnect) {
+					Running = false;
+					Console.WriteLine("The server has disconnected from us ungracefully.");
+					Thread.Sleep(3000);
 				}
 				// Take a small nap
 				Thread.Sleep(10);
 			}
 
-			// In the chance a client connected but we exited the loop, give them 1 second to finish
+			//-------------------------------------------------------- server STOP
+			// If client connected after loop exited, allow 1 second to finish task.
 			Task.WaitAll(newConnectionTasks.ToArray(), 1000);
 
 			// Shutdown all of the threads, regardless if they are done or not
@@ -116,26 +154,34 @@ namespace AsyncMultithreadClientServer
 				gameThread.Abort();
 
 			// Disconnect any clients remaining
-			if (_networkedClient != null)
-				DisconnectClient(_networkedClient, "The server is shutting down.");
+			if (_tcpClient != null)
+				DisconnectClient(_tcpClient, "The server is shutting down.");
 
 			// Cleanup our resources
 			_listener.Stop();
 
 			// Info
 			Console.WriteLine("The server has been shut down.");
+			
+			//-------------------------------------------------------- client STOP
+			
+			// Just incase we have anymore packets, give them one second to be processed
+			Task.WaitAll(messagetasks.ToArray(), 1000);
+
+			// Cleanup
+			this.gamesClient._cleanupNetworkResources();
 		}
 
 		// Awaits for a new connection, sets it to networked client
 		private async Task _handleNewConnection()
 		{
 			// Get the new client using a Future
-			this._networkedClient = await _listener.AcceptTcpClientAsync();
-			Console.WriteLine("New connection from {0}.", _networkedClient.Client.RemoteEndPoint);
+			this._tcpClient = await _listener.AcceptTcpClientAsync();
+			Console.WriteLine("New connection from {0}.", _tcpClient.Client.RemoteEndPoint);
 
 			// Send a welcome message
 			string msg = String.Format("Welcome to the \"{0}\" server.\n", Name);
-			await SendPacket(_networkedClient, new Packet("message", msg));
+			await SendPacket(_tcpClient, new Packet("message", msg));
 		}
 
 		// Will attempt to gracefully disconnect a TcpClient
@@ -164,7 +210,7 @@ namespace AsyncMultithreadClientServer
 		public void HandleDisconnectedClient(TcpClient client)
 		{
 			_cleanupClient(client);
-			//this._networkedClient = null;
+			//this._tcpClient = null;
 			
 		}
 		// cleans up resources for a TcpClient and closes it
@@ -257,26 +303,6 @@ namespace AsyncMultithreadClientServer
 
 
 
-		#region Program Execution
-		public static TcpGamesServer gamesServer;
-
-		// For when the user Presses Ctrl-C, this will gracefully shutdown the server
-		public static void InterruptHandler(object sender, ConsoleCancelEventArgs args)
-		{
-			args.Cancel = true;
-			if (gamesServer != null)
-				gamesServer.Shutdown();
-		}
-
-		public static void Main(string[] args)
-		{
-			// Handler for Ctrl-C presses
-			Console.CancelKeyPress += InterruptHandler;
-
-			// Create and run the server
-			gamesServer = new TcpGamesServer();
-			gamesServer.Run();
-		}
-		#endregion // Program Execution
+		
 	}
 }

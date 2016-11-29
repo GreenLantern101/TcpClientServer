@@ -1,0 +1,7 @@
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Server\bin\Debug\Base.exe.config
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Server\bin\Debug\Base.exe
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Server\bin\Debug\Base.pdb
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Server\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Server\obj\Debug\Base.csprojResolveAssemblyReference.cache
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Server\obj\Debug\Base.exe
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Server\obj\Debug\Base.pdb

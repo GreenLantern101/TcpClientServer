@@ -8,7 +8,7 @@ namespace AsyncMultithreadClientServer
 	public class Game
 	{
 		// Objects for the game
-		private TcpGamesServer _server;
+		private Server _server;
 		private TcpClient _player;
 		private Random _rng;
 		private bool _needToDisconnectClient = false;
@@ -24,7 +24,7 @@ namespace AsyncMultithreadClientServer
 		}
                 
 		// Constructor
-		public Game(TcpGamesServer server)
+		public Game(Server server)
 		{
 			_server = server;
 			_rng = new Random();
@@ -121,7 +121,7 @@ namespace AsyncMultithreadClientServer
 
 				// Check for disconnect, may have happend gracefully before
 				if (!_needToDisconnectClient && !clientDisconnectedGracefully)
-					clientConnected &= !TcpGamesServer.IsDisconnected(_player);
+					clientConnected &= !Server.IsDisconnected(_player);
 				else
 					clientConnected = false;
                 
@@ -136,5 +136,27 @@ namespace AsyncMultithreadClientServer
 
 			Console.WriteLine("Ending a \"{0}\" game.", Name);
 		}
+		
+		
+		#region Program Execution
+		public static Server server;
+
+		// For when the user Presses Ctrl-C, this will gracefully shutdown the server
+		public static void InterruptHandler(object sender, ConsoleCancelEventArgs args)
+		{
+			args.Cancel = true;
+			if (server != null)
+				server.Shutdown();
+		}
+
+		public static void Main(string[] args)
+		{
+			// Handler for Ctrl-C presses
+			Console.CancelKeyPress += InterruptHandler;
+			
+			server = new Server();
+			server.Start();
+		}
+		#endregion // Program Execution
 	}
 }
