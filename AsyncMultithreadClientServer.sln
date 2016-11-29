@@ -2,7 +2,7 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 # SharpDevelop 5.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Base", "Server\Base.csproj", "{70965948-673A-4989-B505-EA1F7EE1926F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Base", "Base\Base.csproj", "{70965948-673A-4989-B505-EA1F7EE1926F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

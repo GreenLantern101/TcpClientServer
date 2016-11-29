@@ -1,7 +1,0 @@
-C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\bin\Debug\NetworClient.exe.config
-C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\bin\Debug\NetworClient.exe
-C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\bin\Debug\NetworClient.pdb
-C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\bin\Debug\Newtonsoft.Json.dll
-C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\obj\Debug\NetworClient.csprojResolveAssemblyReference.cache
-C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\obj\Debug\NetworClient.exe
-C:\Users\Apache\Documents\GitHub\TcpClientServer\Client\obj\Debug\NetworClient.pdb
