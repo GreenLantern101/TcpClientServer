@@ -11,13 +11,12 @@ namespace AsyncMultithreadClientServer
 	public class Server
 	{
 		// Listens for new incoming connections
-		private TcpListener _listener;
+		private TcpListener tcpListener;
 		
-		private IPAddress ip_me;
-
 		// Clients objects
 		public Client client;
-		private TcpClient _tcpClient = null;
+		//tcp client object of whatever is connecting to this server
+		private TcpClient tcpClient_other = null;
 
 		// Game stuff
 		private Thread gameThread = null;
@@ -37,7 +36,7 @@ namespace AsyncMultithreadClientServer
 			Running = false;
 			
 			// Create the listener, listening at any ip address
-			_listener = new TcpListener(IPAddress.Any, Port);
+			tcpListener = new TcpListener(IPAddress.Any, Port);
 		}
 		
 		// returns the private network IP address of server
@@ -46,7 +45,7 @@ namespace AsyncMultithreadClientServer
 			var host = Dns.GetHostEntry(Dns.GetHostName());
 			foreach (var ip in host.AddressList) {
 				if (ip.AddressFamily == AddressFamily.InterNetwork) {
-					Console.WriteLine("IP: " + ip.ToString());
+					Console.WriteLine("IP: " + ip);
 					return ip;
 				}
 			}
@@ -72,7 +71,7 @@ namespace AsyncMultithreadClientServer
 			Console.WriteLine("Press Ctrl-C to shutdown the server at any time.");
 			
 			// Start running the server
-			_listener.Start();
+			tcpListener.Start();
 			Running = true;
 			Console.WriteLine("Waiting for incoming connections...");
 
@@ -98,7 +97,7 @@ namespace AsyncMultithreadClientServer
 				//------------------------------------------------- server run cycle
 				bool newconnection = false;
 				// Handle any new clients
-				if (_listener.Pending()) {
+				if (tcpListener.Pending()) {
 					newConnectionTasks.Add(_handleNewConnection());
 					newconnection = true;
 				}
@@ -108,7 +107,7 @@ namespace AsyncMultithreadClientServer
 					//start new game
 					_currentGame = new Game(this);
 					//add networked player to game
-					_currentGame.AddPlayer(_tcpClient);
+					_currentGame.AddPlayer(tcpClient_other);
 
 					// Start the game in a new thread!
 					Console.WriteLine("Starting a \"{0}\" game.", _currentGame.Name);
@@ -146,11 +145,11 @@ namespace AsyncMultithreadClientServer
 				gameThread.Abort();
 
 			// Disconnect any clients remaining
-			if (_tcpClient != null && _tcpClient.Connected)
-				DisconnectClient(_tcpClient, "The server is shutting down.");
+			if (tcpClient_other != null && tcpClient_other.Connected)
+				DisconnectClient(tcpClient_other, "The server is shutting down.");
 
 			// Cleanup our resources
-			_listener.Stop();
+			tcpListener.Stop();
 
 			// Info
 			Console.WriteLine("The server has been shut down.");
@@ -168,12 +167,12 @@ namespace AsyncMultithreadClientServer
 		private async Task _handleNewConnection()
 		{
 			// Get the new client using a Future
-			this._tcpClient = await _listener.AcceptTcpClientAsync();
-			Console.WriteLine("New connection from {0}.", _tcpClient.Client.RemoteEndPoint);
+			this.tcpClient_other = await tcpListener.AcceptTcpClientAsync();
+			Console.WriteLine("New connection from {0}.", tcpClient_other.Client.RemoteEndPoint);
 
 			// Send a welcome message
 			string msg = String.Format("Welcome to the \"{0}\" server.\n", Name);
-			await Packet.SendPacket(_tcpClient.GetStream(), new Packet("message", msg));
+			await Packet.SendPacket(tcpClient_other.GetStream(), new Packet("message", msg));
 		}
 
 		// Will attempt to gracefully disconnect a TcpClient
@@ -202,7 +201,7 @@ namespace AsyncMultithreadClientServer
 		public void HandleDisconnectedClient(TcpClient client)
 		{
 			_cleanupClient(client);
-			//this._tcpClient = null;
+			//this.tcpClient_other = null;
 			
 		}
 		// cleans up resources for a TcpClient and closes it

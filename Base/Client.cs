@@ -2,6 +2,7 @@
 using System;
 using System.Net.Sockets;
 using System.Net;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -12,9 +13,9 @@ namespace AsyncMultithreadClientServer
 	public class Client
 	{
 		// Connection objects
-		public readonly int Port;
-		IPAddress ipAddress_other;
 		public TcpClient tcpClient;
+		private IPAddress ipAddress_other;
+		private int Port;
 		public bool _clientRequestedDisconnect = false;
 
 		// Messaging
@@ -23,26 +24,13 @@ namespace AsyncMultithreadClientServer
 
 		public Client()
 		{
-           
-			//is the same as localhost: (local ip using "ipconfig" in cmd)
-			ipAddress_other = IPAddress.Parse("10.66.178.65");
+			tcpClient = new TcpClient(AddressFamily.InterNetwork);
 			
-			//because AddressList[0] is IPv6, while server requests IPv4
-			tcpClient = new TcpClient(ipAddress_other.AddressFamily);
-			
-			Port = 32887;
+			//ip address and port of opposing server should be put in "config.txt"
+			string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + "/../../config.txt");	
+			ipAddress_other = IPAddress.Parse(lines[0]);
+			Port = int.Parse(lines[1]);
 		}
-
-		// Cleans up any leftover network resources
-		public void _cleanupNetworkResources()
-		{
-			//Console.WriteLine("Cleaning up network resources...");
-			if (_msgStream != null)
-				_msgStream.Close();
-			_msgStream = null;
-			tcpClient.Close();
-		}
-
 		// Connects to the games server
 		public void Connect()
 		{
@@ -81,6 +69,15 @@ namespace AsyncMultithreadClientServer
 			_clientRequestedDisconnect = true;
 			Packet.SendPacket(this._msgStream, new Packet("bye")).GetAwaiter().GetResult();
 		}
+		// Cleans up any leftover network resources
+		public void _cleanupNetworkResources()
+		{
+			//Console.WriteLine("Cleaning up network resources...");
+			if (_msgStream != null)
+				_msgStream.Close();
+			_msgStream = null;
+			tcpClient.Close();
+		}
 
 		// Checks for new incoming messages and handles them
 		// Handles one Packet at a time, even if more than one is in the memory stream
@@ -97,8 +94,6 @@ namespace AsyncMultithreadClientServer
 						await _commandHandlers[packet.Command](packet.Message);
 					} catch (KeyNotFoundException) {
 					}
-
-					//Console.WriteLine("[RECEIVED]\n{0}", packet);
 				}
 			} catch (Exception) {
 			}
@@ -107,8 +102,6 @@ namespace AsyncMultithreadClientServer
 		#region Command Handlers
 		private Task _handleBye(string message)
 		{
-			// Print the message
-			Console.WriteLine("The server is disconnecting us with this message:");
 			Console.WriteLine(message);
 			return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
 		}
