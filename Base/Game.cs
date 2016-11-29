@@ -10,12 +10,14 @@ namespace AsyncMultithreadClientServer
 		// Objects for the game
 		private Server _server;
 		private TcpClient _player;
-		private Random _rng;
+		private Random rand;
 		private bool _needToDisconnectClient = false;
+		
+		private int numCandies;
 
 		// Name of the game
 		public string Name {
-			get { return "Guess My Number"; }
+			get { return "Nim"; }
 		}
 
 		// Just needs only one player
@@ -27,7 +29,11 @@ namespace AsyncMultithreadClientServer
 		public Game(Server server)
 		{
 			_server = server;
-			_rng = new Random();
+			rand = new Random();
+			
+			// Should be [20, 40]
+			numCandies = rand.Next(20, 40);
+			Console.WriteLine("There are {0} candies.", numCandies);
 		}
 
 		// Adds only a single player to the game
@@ -57,25 +63,24 @@ namespace AsyncMultithreadClientServer
 			if (running) {
 				// Send a instruction packet
 				Packet introPacket = new Packet("message",
-					                                 "Welcome player, I want you to guess my number.\n" +
-					                                 "It's somewhere between (and including) 1 and 100.\n");
+					                     "Hi, you may take 1 to 5 candies each turn." +
+					                     "The player who takes the last candy loses.\n");
 				Packet.SendPacket(_player.GetStream(), introPacket).GetAwaiter().GetResult();
 			} else
 				return;
-
-			// Should be [1, 100]
-			int theNumber = _rng.Next(1, 101);
-			Console.WriteLine("Our number is: {0}", theNumber);
+			
 
 			// Some bools for game state
-			bool correct = false;
+			bool gameEnded = false;
 			bool clientConnected = true;
 			bool clientDisconnectedGracefully = false;
 
 			// Main game loop
 			while (running) {
+				string message = numCandies + " candies left.\n"
+				                 + "How many candies will you take(1-5)? ";
 				// Poll for input
-				Packet inputPacket = new Packet("input", "Your guess: ");
+				Packet inputPacket = new Packet("input", message);
 				Packet.SendPacket(_player.GetStream(), inputPacket).GetAwaiter().GetResult();
 
 				// Read their answer
@@ -95,19 +100,22 @@ namespace AsyncMultithreadClientServer
 				if (answerPacket.Command == "input") {
 					Packet responsePacket = new Packet("message");
 
-					int theirGuess;
-					if (int.TryParse(answerPacket.Message, out theirGuess)) {
-
-						// See if they won
-						if (theirGuess == theNumber) {
-							correct = true;
-							responsePacket.Message = "Correct!  You win!\n";
-						} else if (theirGuess < theNumber)
-							responsePacket.Message = "Too low.\n";
-						else if (theirGuess > theNumber)
-							responsePacket.Message = "Too high.\n";
-					} else
-						responsePacket.Message = "That wasn't a valid number, try again.\n";
+					int taken;
+					if (int.TryParse(answerPacket.Message, out taken)) {
+						if (taken < 1 || taken > 5 || taken > numCandies)
+							responsePacket.Message = "Not allowed.";
+						else {
+						
+							numCandies -= taken;
+							
+							if (numCandies == 0) {
+								gameEnded = true;
+								responsePacket.Message = "You took the last candy and lose!\n";
+							}
+						}
+					} else {
+						responsePacket.Message = "Invalid number, try again.\n";
+					}
 
 					// Send the message
 					Packet.SendPacket(_player.GetStream(), responsePacket).GetAwaiter().GetResult();
@@ -116,8 +124,8 @@ namespace AsyncMultithreadClientServer
 				// Take a small nap
 				Thread.Sleep(10);
 
-				// If they aren't correct, keep them here
-				running &= !correct;
+				// Keep playing until game ends
+				running &= !gameEnded;
 
 				// Check for disconnect, may have happend gracefully before
 				if (!_needToDisconnectClient && !clientDisconnectedGracefully)
@@ -130,13 +138,12 @@ namespace AsyncMultithreadClientServer
 
 			// Thank the player and disconnect them
 			if (clientConnected)
-				_server.DisconnectClient(_player, "Thanks for playing \"Guess My Number\"!");
+				_server.DisconnectClient(_player, "Thanks for playing!");
 			else
 				Console.WriteLine("Client disconnected from game.");
 
 			Console.WriteLine("Ending a \"{0}\" game.", Name);
 		}
-		
 		
 		#region Program Execution
 		public static Server server;
