@@ -1,7 +1,6 @@
 ﻿
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -180,7 +179,7 @@ namespace AsyncMultithreadClientServer
 
 			// Send a welcome message
 			string msg = String.Format("Welcome to the \"{0}\" server.\n", Name);
-			await SendPacket(_tcpClient, new Packet("message", msg));
+			await Packet.SendPacket(_tcpClient.GetStream(), new Packet("message", msg));
 		}
 
 		// Will attempt to gracefully disconnect a TcpClient
@@ -194,7 +193,7 @@ namespace AsyncMultithreadClientServer
 				message = "Goodbye.";
 
 			// Send the "bye," message
-			Task byePacket = SendPacket(client, new Packet("bye", message));
+			Task byePacket = Packet.SendPacket(client.GetStream(), new Packet("bye", message));
 
 			// Give the client some time to send and proccess the graceful disconnect
 			Thread.Sleep(2000);
@@ -220,21 +219,7 @@ namespace AsyncMultithreadClientServer
 		}
 
 		#region Packet Transmission Methods
-		// Sends a packet to a client asynchronously
-		public async Task SendPacket(TcpClient client, Packet packet)
-		{
-			try {
-				byte[] packetBuffer = packet.getPacketBuffer();
-				// Send the packet
-				await client.GetStream().WriteAsync(packetBuffer, 0, packetBuffer.Length);
-
-				//Console.WriteLine("[SENT]\n{0}", packet);
-			} catch (Exception e) {
-				// There was an issue is sending
-				Console.WriteLine("There was an issue sending a packet.");
-				Console.WriteLine("Reason: {0}", e.Message);
-			}
-		}
+		
 
 		// Will get a single packet from a TcpClient
 		// Will return null if there isn't any data available or some other

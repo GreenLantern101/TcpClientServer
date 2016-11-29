@@ -1,6 +1,5 @@
 ﻿
 using System;
-using System.Text;
 using System.Net.Sockets;
 using System.Net;
 using System.Threading;
@@ -15,7 +14,6 @@ namespace AsyncMultithreadClientServer
 		public readonly string ServerAddress;
 		public readonly int Port;
 		IPAddress ipAddress_other;
-		public bool Running { get; private set; }
 		public TcpClient _client;
 		public bool _clientRequestedDisconnect = false;
 
@@ -26,8 +24,6 @@ namespace AsyncMultithreadClientServer
 		public Client()
 		{
            
-			Running = false;
-
 			// Set other data
 			ServerAddress = "localhost";
 			//is the same as localhost: (local ip using "ipconfig" in cmd)
@@ -70,7 +66,6 @@ namespace AsyncMultithreadClientServer
 			if (_client.Connected) {
 				// Connected!
 				Console.WriteLine("Connected to the server at {0}.", _client.Client.RemoteEndPoint);
-				Running = true;
 
 				// Get the message stream
 				_msgStream = _client.GetStream();
@@ -87,22 +82,8 @@ namespace AsyncMultithreadClientServer
 		public void Disconnect()
 		{
 			Console.WriteLine("Disconnecting from the server...");
-			Running = false;
 			_clientRequestedDisconnect = true;
-			_sendPacket(new Packet("bye")).GetAwaiter().GetResult();
-		}
-
-		// Sends packets to the server asynchronously
-		private async Task _sendPacket(Packet packet)
-		{
-			try {                
-				byte[] packetBuffer = packet.getPacketBuffer();
-				// Send the packet
-				await _msgStream.WriteAsync(packetBuffer, 0, packetBuffer.Length);
-
-				//Console.WriteLine("[SENT]\n{0}", packet);
-			} catch (Exception) {
-			}
+			Packet.SendPacket(this._msgStream, new Packet("bye")).GetAwaiter().GetResult();
 		}
 
 		// Checks for new incoming messages and handles them
@@ -133,9 +114,6 @@ namespace AsyncMultithreadClientServer
 			// Print the message
 			Console.WriteLine("The server is disconnecting us with this message:");
 			Console.WriteLine(message);
-
-			// Will start the disconnection process in Run()
-			Running = false;
 			return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
 		}
 
@@ -155,7 +133,7 @@ namespace AsyncMultithreadClientServer
 
 			// Send the response
 			Packet resp = new Packet("input", responseMsg);
-			await _sendPacket(resp);
+			await Packet.SendPacket(this._msgStream, resp);
 		}
 		#endregion // Command Handlers
 

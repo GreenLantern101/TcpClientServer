@@ -59,7 +59,7 @@ namespace AsyncMultithreadClientServer
 				Packet introPacket = new Packet("message",
 					                                 "Welcome player, I want you to guess my number.\n" +
 					                                 "It's somewhere between (and including) 1 and 100.\n");
-				_server.SendPacket(_player, introPacket).GetAwaiter().GetResult();
+				Packet.SendPacket(_player.GetStream(), introPacket).GetAwaiter().GetResult();
 			} else
 				return;
 
@@ -76,7 +76,7 @@ namespace AsyncMultithreadClientServer
 			while (running) {
 				// Poll for input
 				Packet inputPacket = new Packet("input", "Your guess: ");
-				_server.SendPacket(_player, inputPacket).GetAwaiter().GetResult();
+				Packet.SendPacket(_player.GetStream(), inputPacket).GetAwaiter().GetResult();
 
 				// Read their answer
 				Packet answerPacket = null;
@@ -110,7 +110,7 @@ namespace AsyncMultithreadClientServer
 						responsePacket.Message = "That wasn't a valid number, try again.\n";
 
 					// Send the message
-					_server.SendPacket(_player, responsePacket).GetAwaiter().GetResult();
+					Packet.SendPacket(_player.GetStream(), responsePacket).GetAwaiter().GetResult();
 				}
 
 				// Take a small nap

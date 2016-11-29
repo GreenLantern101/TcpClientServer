@@ -43,6 +43,22 @@ namespace AsyncMultithreadClientServer
 			return JsonConvert.DeserializeObject<Packet>(jsonData);
 		}
 		
+		#region RECEIVING
+		// Sends a packet to a client asynchronously
+		public static async Task SendPacket(NetworkStream stream, Packet packet)
+		{
+			try {
+				byte[] packetBuffer = packet.getPacketBuffer();
+				// Send the packet
+				await stream.WriteAsync(packetBuffer, 0, packetBuffer.Length);
+
+				//Console.WriteLine("[SENT]\n{0}", packet);
+			} catch (Exception e) {
+				// There was an issue is sending
+				Console.WriteLine("There was an issue sending a packet.");
+				Console.WriteLine("Reason: {0}", e.Message);
+			}
+		}
 		public byte[] getPacketBuffer()
 		{
 			// convert JSON to buffer and its length to a 16 bit unsigned integer buffer
@@ -56,8 +72,9 @@ namespace AsyncMultithreadClientServer
 				
 			return packetBuffer;
 		}
+		#endregion
 		
-		
+		#region SENDING
 		public static Packet getPacketFromStream(NetworkStream _msgStream)
 		{
 			Task<Packet> getfromstream = Packet.getTaskFromStream(_msgStream);
@@ -83,17 +100,6 @@ namespace AsyncMultithreadClientServer
 			
 			return packet;
 		}
+		#endregion
 	}
-	
-	//PRE-PROCESSING needed:
-	/*Call the ToJson() method on the Packet to get it as a string.  
-	Then after that, encode it (in UTF-8) into a byte array
-	Get how many bytes are in that first byte array, 
-	then encode that number as an unsigned 16 bit integer into a second byte array.  
-	The resulting array should be exactly two bytes long
-	Join those two arrays into a new one with the "length buffer," ahead of the "JSON buffer,"
-	*/
-
-	
-	
 }
