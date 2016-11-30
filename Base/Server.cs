@@ -24,19 +24,17 @@ namespace AsyncMultithreadClientServer
 
 		// Other data
 		public readonly string Name;
-		public readonly int Port;
+		public readonly int port_me;
 		public bool Running { get; private set; }
 
-		// Construct to create a new Games Server
 		public Server()
 		{
-			// Set some of the basic data
 			Name = "SERVER_ONE";
-			Port = 32887;
+			port_me = 32887;
 			Running = false;
 			
 			// Create the listener, listening at any ip address
-			tcpListener = new TcpListener(IPAddress.Any, Port);
+			tcpListener = new TcpListener(IPAddress.Any, port_me);
 		}
 		
 		// returns the private network IP address of server
@@ -52,14 +50,12 @@ namespace AsyncMultithreadClientServer
 			throw new Exception("Local IP Address Not Found!");
 		}
 
-		// Shutdown the server if its running
 		public void Shutdown()
 		{
 			if (Running) {
 				Running = false;
 				Console.WriteLine("Shutting down server...");
 			}
-			
 			// gracefully disconnect client...
 			if (client != null)
 				client.Disconnect();
@@ -67,7 +63,7 @@ namespace AsyncMultithreadClientServer
 		public void Start()
 		{
 			//------------------------------------------------ start server
-			Console.WriteLine("Starting the \"{0}\" server on port {1}.", Name, Port); 
+			Console.WriteLine("Starting the \"{0}\" server on port {1}.", Name, port_me); 
 			Console.WriteLine("Press Ctrl-C to shutdown the server at any time.");
 			
 			// Start running the server
@@ -83,14 +79,12 @@ namespace AsyncMultithreadClientServer
 			this.Run();
 		}
 
-		// The main loop for the games server
 		public void Run()
 		{
 			//server vars
 			List<Task> newConnectionTasks = new List<Task>();
 			
 			//client vars
-			bool wasRunning = Running;
 			List<Task> messagetasks = new List<Task>();
 			
 			while (Running) {
@@ -127,7 +121,7 @@ namespace AsyncMultithreadClientServer
 				if (IsDisconnected(this.client.tcpClient) 
 				    && !this.client._clientRequestedDisconnect) {
 					Running = false;
-					Console.WriteLine("The server has disconnected from us ungracefully.");
+					Console.WriteLine("Other server disconnected from us ungracefully.");
 					Thread.Sleep(3000);
 				}
 				
@@ -146,7 +140,7 @@ namespace AsyncMultithreadClientServer
 
 			// Disconnect any clients remaining
 			if (tcpClient_other != null && tcpClient_other.Connected)
-				DisconnectClient(tcpClient_other, "The server is shutting down.");
+				DisconnectClient(tcpClient_other, "Other server is shutting down.");
 
 			// Cleanup our resources
 			tcpListener.Stop();
@@ -175,48 +169,47 @@ namespace AsyncMultithreadClientServer
 			await Packet.SendPacket(tcpClient_other.GetStream(), new Packet("message", msg));
 		}
 
-		// Will attempt to gracefully disconnect a TcpClient
-		// used for in-game clients
+		// Checks if a client has disconnected ungracefully
+		public static bool IsDisconnected(TcpClient client)
+		{
+			try {
+				Socket s = client.Client;
+				return s.Poll(10 * 1000, SelectMode.SelectRead) && (s.Available == 0);
+			} catch (SocketException) {
+				// If socket error, assume it's disconnected
+				return true;
+			}
+		}
+		// Gracefully disconnect a TcpClient
 		public void DisconnectClient(TcpClient client, string message = "")
 		{
 			Console.WriteLine("Disconnecting the client from {0}.", client.Client.RemoteEndPoint);
 
-			// If there wasn't a message set, use the default "Goodbye."
+			// If no message set, use the default "Goodbye."
 			if (message == "")
 				message = "Goodbye.";
 
-			// Send the "bye," message
+			// Send the "bye" message
 			Task byePacket = Packet.SendPacket(client.GetStream(), new Packet("bye", message));
 
-			// Give the client some time to send and proccess the graceful disconnect
-			Thread.Sleep(2000);
+			// Give the client some time to send and process the graceful disconnect
+			Thread.Sleep(500);
 
 			// Cleanup resources on our end
 			byePacket.GetAwaiter().GetResult();
-			HandleDisconnectedClient(client);
+			CleanupClient(client);
 		}
-
-		// Cleans up the resources if a client has disconnected,
-		// gracefully or not.
-		public void HandleDisconnectedClient(TcpClient client)
-		{
-			_cleanupClient(client);
-			//this.tcpClient_other = null;
-			
-		}
+		
 		// cleans up resources for a TcpClient and closes it
-		private static void _cleanupClient(TcpClient client)
+		public void CleanupClient(TcpClient client)
 		{
 			client.GetStream().Close();     // Close network stream
 			client.Close();                 // Close client
+			//this.tcpClient_other = null;
 		}
 
-		#region Packet Transmission Methods
-		
-
 		// Will get a single packet from a TcpClient
-		// Will return null if there isn't any data available or some other
-		// issue getting data from the client
+		// Returns null if no data available or issue
 		public async Task<Packet> ReceivePacket(TcpClient client)
 		{
 			Packet packet = null;
@@ -228,7 +221,6 @@ namespace AsyncMultithreadClientServer
 				NetworkStream _msgStream = client.GetStream();
 				packet = Packet.getPacketFromStream(_msgStream);
 
-				//Console.WriteLine("[RECEIVED]\n{0}", packet);
 			} catch (Exception e) {
 				// There was an issue in receiving
 				Console.WriteLine("There was an issue receiving a packet from {0}.", client.Client.RemoteEndPoint);
@@ -237,28 +229,6 @@ namespace AsyncMultithreadClientServer
 
 			return packet;
 		}
-		#endregion // Packet Transmission Methods
 
-		#region TcpClient Helper Methods
-		// Checks if a client has disconnected ungracefully
-		// Adapted from: http://stackoverflow.com/questions/722240/instantly-detect-client-disconnection-from-server-socket
-		public static bool IsDisconnected(TcpClient client)
-		{
-			try {
-				Socket s = client.Client;
-				return s.Poll(10 * 1000, SelectMode.SelectRead) && (s.Available == 0);
-			} catch (SocketException) {
-				// We got a socket error, assume it's disconnected
-				return true;
-			}
-		}
-		
-		#endregion // TcpClient Helper Methods
-
-
-
-
-
-		
 	}
 }

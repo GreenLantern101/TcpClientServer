@@ -63,7 +63,7 @@ namespace AsyncMultithreadClientServer
 			if (running) {
 				// Send a instruction packet
 				Packet introPacket = new Packet("message",
-					                     "Hi, you may take 1 to 5 candies each turn." +
+					                     "Hi, you may take 1 to 5 candies each turn. " +
 					                     "The player who takes the last candy loses.\n");
 				Packet.SendPacket(_player.GetStream(), introPacket).GetAwaiter().GetResult();
 			} else
@@ -90,9 +90,9 @@ namespace AsyncMultithreadClientServer
 					Thread.Sleep(10);
 				}
 
-				// Check for graceful disconnect
+				// Cleanup disconnected client
 				if (answerPacket.Command == "bye") {
-					_server.HandleDisconnectedClient(_player);
+					_server.CleanupClient(_player);
 					clientDisconnectedGracefully = true;
 				}
 
@@ -127,7 +127,7 @@ namespace AsyncMultithreadClientServer
 				// Keep playing until game ends
 				running &= !gameEnded;
 
-				// Check for disconnect, may have happend gracefully before
+				// Check for disconnect, may have happened gracefully before
 				if (!_needToDisconnectClient && !clientDisconnectedGracefully)
 					clientConnected &= !Server.IsDisconnected(_player);
 				else

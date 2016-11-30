@@ -43,7 +43,7 @@ namespace AsyncMultithreadClientServer
 			return JsonConvert.DeserializeObject<Packet>(jsonData);
 		}
 		
-		#region RECEIVING
+		#region SENDING
 		// Sends a packet to a client asynchronously
 		public static async Task SendPacket(NetworkStream stream, Packet packet)
 		{
@@ -52,10 +52,8 @@ namespace AsyncMultithreadClientServer
 				// Send the packet
 				await stream.WriteAsync(packetBuffer, 0, packetBuffer.Length);
 
-				//Console.WriteLine("[SENT]\n{0}", packet);
 			} catch (Exception e) {
-				// There was an issue is sending
-				Console.WriteLine("There was an issue sending a packet.");
+				Console.WriteLine("Error sending a packet.");
 				Console.WriteLine("Reason: {0}", e.Message);
 			}
 		}
@@ -74,7 +72,7 @@ namespace AsyncMultithreadClientServer
 		}
 		#endregion
 		
-		#region SENDING
+		#region RECEIVING
 		public static Packet getPacketFromStream(NetworkStream _msgStream)
 		{
 			Task<Packet> getfromstream = Packet.getTaskFromStream(_msgStream);
@@ -85,16 +83,16 @@ namespace AsyncMultithreadClientServer
 		{
 			Packet packet;
 			
-			// There must be some incoming data, the first two bytes are the size of the Packet
+			// First two bytes are the size of the Packet
 			byte[] lengthBuffer = new byte[2];
 			await _msgStream.ReadAsync(lengthBuffer, 0, 2);
 			ushort packetByteSize = BitConverter.ToUInt16(lengthBuffer, 0);
 
-			// Now read that many bytes from what's left in the stream, it must be the Packet
+			// Remaining bytes in the stream must be the Packet
 			byte[] jsonBuffer = new byte[packetByteSize];
 			await _msgStream.ReadAsync(jsonBuffer, 0, jsonBuffer.Length);
 
-			// Convert it into a packet datatype
+			// Convert to packet datatype
 			string jsonString = Encoding.UTF8.GetString(jsonBuffer);
 			packet = Packet.FromJson(jsonString);
 			

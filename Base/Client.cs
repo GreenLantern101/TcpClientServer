@@ -9,7 +9,7 @@ using System.Collections.Generic;
 
 namespace AsyncMultithreadClientServer
 {
-	//is essentially a wrapper over TcpClient
+	//essentially a wrapper over TcpClient
 	public class Client
 	{
 		// Connection objects
@@ -48,8 +48,7 @@ namespace AsyncMultithreadClientServer
 
 			// check that we've connected
 			if (tcpClient.Connected) {
-				// Connected!
-				Console.WriteLine("Connected to the server at {0}.", tcpClient.Client.RemoteEndPoint);
+				Console.WriteLine("Connected to server at {0}.", tcpClient.Client.RemoteEndPoint);
 
 				// Get the message stream
 				_msgStream = tcpClient.GetStream();
@@ -61,15 +60,14 @@ namespace AsyncMultithreadClientServer
 			}
 		}
 
-		// Requests a disconnect, will send a "bye," message to the server
+		// Requests a disconnect, will send "bye" message
 		// This should only be called by the user
 		public void Disconnect()
 		{
-			Console.WriteLine("Disconnecting from the server...");
+			Console.WriteLine("Disconnecting...");
 			_clientRequestedDisconnect = true;
 			Packet.SendPacket(this._msgStream, new Packet("bye")).GetAwaiter().GetResult();
 		}
-		// Cleans up any leftover network resources
 		public void _cleanupNetworkResources()
 		{
 			//Console.WriteLine("Cleaning up network resources...");
