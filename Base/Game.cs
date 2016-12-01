@@ -13,18 +13,15 @@ namespace AsyncMultithreadClientServer
 		private Random rand;
 		private bool _needToDisconnectClient = false;
 		
-		private int numCandies;
+		bool gameEnded = false;
+		
+		public int numCandies{ get; private set; }
 
 		// Name of the game
 		public string Name {
 			get { return "Nim"; }
 		}
-
-		// Just needs only one player
-		public int RequiredPlayers {
-			get { return 1; }
-		}
-                
+		
 		// Constructor
 		public Game(Server server)
 		{
@@ -34,6 +31,35 @@ namespace AsyncMultithreadClientServer
 			// Should be [20, 40]
 			numCandies = rand.Next(20, 40);
 			Console.WriteLine("There are {0} candies.", numCandies);
+		}
+		
+		public void RemoveCandies(int num)
+		{
+			numCandies -= num;
+		}
+		
+		/// <summary>
+		/// Called directly whenever local user inputs
+		/// also called whenever game receives packet (networked player inputs)
+		/// </summary>
+		public void HandleInputAction(string message)
+		{
+			int taken;
+			if (int.TryParse(message, out taken)) {
+				if (taken < 1 || taken > 5 || taken > numCandies)
+					Console.WriteLine("Not allowed.");
+				else {
+						
+					this.RemoveCandies(taken);
+							
+					if (numCandies == 0) {
+						gameEnded = true;
+						Console.WriteLine("You took the last candy and lose!\n");
+					}
+				}
+			} else {
+				Console.WriteLine("Invalid number.\n");
+			}
 		}
 
 		// Adds only a single player to the game
@@ -71,7 +97,6 @@ namespace AsyncMultithreadClientServer
 			
 
 			// Some bools for game state
-			bool gameEnded = false;
 			bool clientConnected = true;
 			bool clientDisconnectedGracefully = false;
 
@@ -99,27 +124,17 @@ namespace AsyncMultithreadClientServer
 				// Check input
 				if (answerPacket.Command == "input") {
 					Packet responsePacket = new Packet("message");
-
-					int taken;
-					if (int.TryParse(answerPacket.Message, out taken)) {
-						if (taken < 1 || taken > 5 || taken > numCandies)
-							responsePacket.Message = "Not allowed.";
-						else {
-						
-							numCandies -= taken;
-							
-							if (numCandies == 0) {
-								gameEnded = true;
-								responsePacket.Message = "You took the last candy and lose!\n";
-							}
-						}
-					} else {
-						responsePacket.Message = "Invalid number, try again.\n";
-					}
+					responsePacket.Message = "Input action received.";
+					
+					this.HandleInputAction(answerPacket.Message);
 
 					// Send the message
 					Packet.SendPacket(_player.GetStream(), responsePacket).GetAwaiter().GetResult();
 				}
+				
+				//poll for local player input changes
+				if(server.client.changed)
+					this.HandleInputAction(server.client.action);
 
 				// Take a small nap
 				Thread.Sleep(10);

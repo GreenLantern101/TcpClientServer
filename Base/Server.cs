@@ -72,7 +72,7 @@ namespace AsyncMultithreadClientServer
 			Console.WriteLine("Waiting for incoming connections...");
 
 			//------------------------------------------------- start client
-			client = new Client();
+			client = new Client(this._currentGame);
 			//connect game client...
 			client.Connect();
 			//------------------------------------------------- run server & client

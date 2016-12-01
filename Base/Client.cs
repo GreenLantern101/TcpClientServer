@@ -17,12 +17,14 @@ namespace AsyncMultithreadClientServer
 		private IPAddress ipAddress_other;
 		private int Port;
 		public bool _clientRequestedDisconnect = false;
+		
+		private Game game;
 
 		// Messaging
 		private NetworkStream _msgStream = null;
 		private Dictionary<string, Func<string, Task>> _commandHandlers = new Dictionary<string, Func<string, Task>>();
 
-		public Client()
+		public Client(Game game)
 		{
 			tcpClient = new TcpClient(AddressFamily.InterNetwork);
 			
@@ -30,6 +32,8 @@ namespace AsyncMultithreadClientServer
 			string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + "/../../config.txt");	
 			ipAddress_other = IPAddress.Parse(lines[0]);
 			Port = int.Parse(lines[1]);
+			
+			this.game = game;
 		}
 		// Connects to the games server
 		public void Connect()
@@ -81,11 +85,12 @@ namespace AsyncMultithreadClientServer
 		// Handles one Packet at a time, even if more than one is in the memory stream
 		public async Task _handleIncomingPackets()
 		{
+			Packet packet = new Packet();
 			try {
 				// Check for new incoming messages
 				if (tcpClient.Available > 0) {
 					
-					Packet packet = Packet.getPacketFromStream(_msgStream);
+					packet = Packet.getPacketFromStream(_msgStream);
 
 					// Dispatch it
 					try {
@@ -93,7 +98,7 @@ namespace AsyncMultithreadClientServer
 					} catch (KeyNotFoundException) {
 					}
 				}
-			} catch (Exception) {
+			} catch (Exception e) {
 			}
 		}
 
@@ -117,11 +122,17 @@ namespace AsyncMultithreadClientServer
 			// Print the prompt and get a response to send
 			Console.Write(message);
 			string responseMsg = Console.ReadLine();
-
+			
+			this.changed = true;
+			this.action = responseMsg;
+			
 			// Send the response
 			Packet resp = new Packet("input", responseMsg);
+			
 			await Packet.SendPacket(this._msgStream, resp);
 		}
+		public bool changed = false;
+		public string action = "";
 		#endregion // Command Handlers
 	}
 }
