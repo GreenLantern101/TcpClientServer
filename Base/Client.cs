@@ -129,22 +129,19 @@ namespace AsyncMultithreadClientServer
 		{
 			// Print the prompt and get a response to send
 			Console.Write(message);
-			ConsoleKeyInfo cki;
-			string response = "";
-			while (!Console.KeyAvailable) {
-				cki = Console.ReadKey(true);
-				response = cki.KeyChar.ToString();
-				
-				
-				//NOTE: for some reason, calling synchronous game method here doesn't work...
-				this.changed_local = true;
-				this.action_local = response;
 			
-				// Send the response
-				Packet resp = new Packet("input", response);
+			string responseMsg = Console.ReadLine();
 			
-				await Packet.SendPacket(this._msgStream, resp);
-			}
+			
+			//NOTE: for some reason, calling synchronous game method here doesn't work...
+			this.changed_local = true;
+			this.action_local = responseMsg;
+			
+			
+			// Send the response
+			Packet resp = new Packet("input", responseMsg);
+			
+			await Packet.SendPacket(this._msgStream, resp);
 		}
 		public bool changed_local = false;
 		public string action_local = "";

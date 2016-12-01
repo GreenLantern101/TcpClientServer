@@ -30,7 +30,7 @@ namespace AsyncMultithreadClientServer
 		public Server()
 		{
 			Name = "SERVER_ONE";
-			port_me = 32887;
+			port_me = 32890;
 			Running = false;
 			
 			// Create the listener, listening at any ip address
@@ -120,6 +120,19 @@ namespace AsyncMultithreadClientServer
 				
 				// Check for new packets
 				messagetasks.Add(this.client._handleIncomingPackets());
+				
+				//poll for local player input changes
+				if (client.changed_local) {
+					this._currentGame.HandleInputAction(client.action_local);
+					//reset flag
+					client.changed_local = false;
+				}
+				//poll for remote player input changes
+				if (client.changed_remote) {
+					this._currentGame.SyncGame_obey(client.action_remote);
+					//reset flag
+					client.changed_remote = false;
+				}
 
 				// Make sure that we didn't have a graceless disconnect
 				if (IsDisconnected(this.client.tcpClient) 

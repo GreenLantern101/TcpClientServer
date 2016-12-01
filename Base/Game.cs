@@ -54,11 +54,11 @@ namespace AsyncMultithreadClientServer
 							
 					if (numCandies == 0) {
 						gameEnded = true;
-						Console.WriteLine("You took the last candy and lose!\n");
+						Console.WriteLine("You took the last candy and lose!");
 					}
 				}
 			} else {
-				Console.WriteLine("Invalid number.\n");
+				Console.WriteLine("Invalid number.");
 			}
 			
 			SyncGame_command();
@@ -79,9 +79,9 @@ namespace AsyncMultithreadClientServer
 			int num;
 			if (int.TryParse(message, out num)) {
 				this.numCandies = num;
-				Console.WriteLine("\nSYNCED: " + numCandies + " candies left.");
+				Console.WriteLine("SYNCED: " + numCandies + " candies left.");
 			} else {
-				Console.WriteLine("Unable to sync.\n");
+				Console.WriteLine("Unable to sync.");
 			}
 		}
 
@@ -108,7 +108,6 @@ namespace AsyncMultithreadClientServer
 		{
 			string message = numCandies + " candies left.\n"
 			                 + "How many candies will you take(1-5)? ";
-			message="";
 			// Poll for input
 			Packet inputPacket = new Packet("input", message);
 			Packet.SendPacket(_player.GetStream(), inputPacket).GetAwaiter().GetResult();
@@ -119,8 +118,6 @@ namespace AsyncMultithreadClientServer
 		// Packets are sent sent synchronously though
 		public void Run()
 		{
-			PollForInput();
-			
 			// Make sure we have a player
 			bool running = (_player != null);
 			if (running) {
@@ -140,6 +137,8 @@ namespace AsyncMultithreadClientServer
 
 			// Main game loop
 			while (running) {
+				
+				PollForInput();
 
 				// Read their answer
 				Packet answerPacket = null;
@@ -165,18 +164,6 @@ namespace AsyncMultithreadClientServer
 					Packet.SendPacket(_player.GetStream(), responsePacket).GetAwaiter().GetResult();
 				}
 				
-				//poll for local player input changes
-				if (server.client.changed_local) {
-					this.HandleInputAction(server.client.action_local);
-					//reset flag
-					server.client.changed_local = false;
-				}
-				//poll for local player input changes
-				if (server.client.changed_remote) {
-					this.SyncGame_obey(server.client.action_remote);
-					//reset flag
-					server.client.changed_remote = false;
-				}
 
 				// Take a small nap
 				Thread.Sleep(10);
