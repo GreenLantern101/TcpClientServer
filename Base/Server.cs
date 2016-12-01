@@ -75,6 +75,8 @@ namespace AsyncMultithreadClientServer
 			client = new Client(this._currentGame);
 			//connect game client...
 			client.Connect();
+			
+			
 			//------------------------------------------------- run server & client
 			this.Run();
 		}
@@ -107,9 +109,11 @@ namespace AsyncMultithreadClientServer
 					Console.WriteLine("Starting a \"{0}\" game.", _currentGame.Name);
 					this.gameThread = new Thread(new ThreadStart(_currentGame.Run));
 					gameThread.Start();
+					
+					
+					//SYNC GAME AT BEGINNING immediately after connecting
+					_currentGame.SyncGame_command();
 
-					// Create a new game
-					_currentGame = new Game(this);
 				}
 				
 				//------------------------------------------------- client run cycle

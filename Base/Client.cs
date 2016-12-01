@@ -61,6 +61,7 @@ namespace AsyncMultithreadClientServer
 				_commandHandlers["bye"] = _handleBye;
 				_commandHandlers["message"] = _handleMessage;
 				_commandHandlers["input"] = _handleInput;
+				_commandHandlers["sync"] = _handleSync;
 			}
 		}
 
@@ -115,24 +116,40 @@ namespace AsyncMultithreadClientServer
 			Console.Write(message);
 			return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
 		}
+		private Task _handleSync(string message)
+		{
+			this.changed_remote = true;
+			this.action_remote = message;
+			
+			return Task.FromResult(0);
+		}
 
 		// Gets input from the user and sends it to the server
 		private async Task _handleInput(string message)
 		{
 			// Print the prompt and get a response to send
 			Console.Write(message);
-			string responseMsg = Console.ReadLine();
+			ConsoleKeyInfo cki;
+			string response = "";
+			while (!Console.KeyAvailable) {
+				cki = Console.ReadKey(true);
+				response = cki.KeyChar.ToString();
+				
+				
+				//NOTE: for some reason, calling synchronous game method here doesn't work...
+				this.changed_local = true;
+				this.action_local = response;
 			
-			this.changed = true;
-			this.action = responseMsg;
+				// Send the response
+				Packet resp = new Packet("input", response);
 			
-			// Send the response
-			Packet resp = new Packet("input", responseMsg);
-			
-			await Packet.SendPacket(this._msgStream, resp);
+				await Packet.SendPacket(this._msgStream, resp);
+			}
 		}
-		public bool changed = false;
-		public string action = "";
+		public bool changed_local = false;
+		public string action_local = "";
+		public bool changed_remote = false;
+		public string action_remote = "";
 		#endregion // Command Handlers
 	}
 }

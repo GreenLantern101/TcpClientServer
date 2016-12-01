@@ -60,6 +60,29 @@ namespace AsyncMultithreadClientServer
 			} else {
 				Console.WriteLine("Invalid number.\n");
 			}
+			
+			SyncGame_command();
+		}
+		
+		// called to ensure games same in different instances
+		// called after every action update
+		// command other game to sync with this
+		public void SyncGame_command()
+		{
+			Packet syncPacket = new Packet("sync", this.numCandies.ToString());
+			Packet.SendPacket(_player.GetStream(), syncPacket).GetAwaiter().GetResult();
+		}
+		
+		// obey with an order to sync game
+		public void SyncGame_obey(string message)
+		{
+			int num;
+			if (int.TryParse(message, out num)) {
+				this.numCandies = num;
+				Console.WriteLine("\nSYNCED: " + numCandies + " candies left.");
+			} else {
+				Console.WriteLine("Unable to sync.\n");
+			}
 		}
 
 		// Adds only a single player to the game
@@ -79,14 +102,29 @@ namespace AsyncMultithreadClientServer
 		{
 			_needToDisconnectClient = (client == _player);
 		}
+		
+		
+		private void PollForInput()
+		{
+			string message = numCandies + " candies left.\n"
+			                 + "How many candies will you take(1-5)? ";
+			message="";
+			// Poll for input
+			Packet inputPacket = new Packet("input", message);
+			Packet.SendPacket(_player.GetStream(), inputPacket).GetAwaiter().GetResult();
+		}
+		
 
 		// Main loop of the Game
 		// Packets are sent sent synchronously though
 		public void Run()
 		{
+			PollForInput();
+			
 			// Make sure we have a player
 			bool running = (_player != null);
 			if (running) {
+				
 				// Send a instruction packet
 				Packet introPacket = new Packet("message",
 					                     "Hi, you may take 1 to 5 candies each turn. " +
@@ -102,11 +140,6 @@ namespace AsyncMultithreadClientServer
 
 			// Main game loop
 			while (running) {
-				string message = numCandies + " candies left.\n"
-				                 + "How many candies will you take(1-5)? ";
-				// Poll for input
-				Packet inputPacket = new Packet("input", message);
-				Packet.SendPacket(_player.GetStream(), inputPacket).GetAwaiter().GetResult();
 
 				// Read their answer
 				Packet answerPacket = null;
@@ -133,8 +166,17 @@ namespace AsyncMultithreadClientServer
 				}
 				
 				//poll for local player input changes
-				if(server.client.changed)
-					this.HandleInputAction(server.client.action);
+				if (server.client.changed_local) {
+					this.HandleInputAction(server.client.action_local);
+					//reset flag
+					server.client.changed_local = false;
+				}
+				//poll for local player input changes
+				if (server.client.changed_remote) {
+					this.SyncGame_obey(server.client.action_remote);
+					//reset flag
+					server.client.changed_remote = false;
+				}
 
 				// Take a small nap
 				Thread.Sleep(10);
