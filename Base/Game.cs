@@ -10,6 +10,7 @@ namespace AsyncMultithreadClientServer
 		// Objects for the game
 		private Server _server;
 		private TcpClient _player;
+		private Socket _player_socket;
 		private Random rand;
 		private bool _needToDisconnectClient = false;
 		

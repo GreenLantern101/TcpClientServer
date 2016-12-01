@@ -75,10 +75,11 @@ namespace AsyncMultithreadClientServer
 			Console.WriteLine("Waiting for incoming connections...");
 
 			//------------------------------------------------- start client
+			/*
 			client = new Client(this._currentGame);
 			//connect game client...
 			client.Connect();
-			
+			*/
 			
 			//------------------------------------------------- run server & client
 			this.Run();
@@ -120,7 +121,7 @@ namespace AsyncMultithreadClientServer
 				}
 				
 				//------------------------------------------------- client run cycle
-				
+				/*
 				// Check for new packets
 				messagetasks.Add(this.client._handleIncomingPackets());
 				
@@ -144,7 +145,7 @@ namespace AsyncMultithreadClientServer
 					Console.WriteLine("Other server disconnected from us ungracefully.");
 					Thread.Sleep(3000);
 				}
-				
+				*/
 				
 				//--------------------------------------------------- Take a small nap
 				Thread.Sleep(10);
