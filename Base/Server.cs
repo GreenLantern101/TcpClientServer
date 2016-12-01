@@ -35,6 +35,9 @@ namespace AsyncMultithreadClientServer
 			
 			// Create the listener, listening at any ip address
 			tcpListener = new TcpListener(IPAddress.Any, port_me);
+			
+			//might need to use something like this to make public host
+			//tcpListener = new TcpListener(IPAddress.Parse(Dns.GetHostName()), port_me);
 		}
 		
 		// returns the private network IP address of server

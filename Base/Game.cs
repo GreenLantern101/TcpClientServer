@@ -108,7 +108,6 @@ namespace AsyncMultithreadClientServer
 		{
 			string message = numCandies + " candies left.\n"
 			                 + "How many candies will you take(1-5)? ";
-			// Poll for input
 			Packet inputPacket = new Packet("input", message);
 			Packet.SendPacket(_player.GetStream(), inputPacket).GetAwaiter().GetResult();
 		}
