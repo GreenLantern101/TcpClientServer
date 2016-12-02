@@ -22,23 +22,27 @@ class Client:
         running = True
 
         while(running):
-            message = ''
+            raw = ''
             try:
-                message = self.Receive_String(self.sock)
+                raw = self.Receive_String(self.sock)
             except Exception as e:
                 print("Error while receiving: " + str(e))
                 break
 
-            if message:
-                print(message)
-                if message.find("input") != -1:
-                    self._handleInput()
+            if raw:
+                parsed_raw = json.loads(raw)
+                message = parsed_raw['message']
+                command = parsed_raw['command']
+                if command == 'input':
+                    self._handleInput(message)
+                else:
+                    print(message)
 
             #sleep in seconds
             sleep(.010)
 
-    def _handleInput(self):
-        read = input("How many candies to take (1-5): ")
+    def _handleInput(self, query):
+        read = input(query)
         message = "{\"command\":\"input\", \"message\":\"" + read + "\"}"
         #print(message_bytes)
         self.Send_String(self.sock, message)
