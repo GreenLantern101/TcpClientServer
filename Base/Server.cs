@@ -50,7 +50,7 @@ namespace AsyncMultithreadClientServer
 					return ip;
 				}
 			}
-			throw new Exception("Local IP Address Not Found!");
+			throw new Exception("Local IP Address not found.");
 		}
 
 		public void Shutdown()

@@ -59,7 +59,7 @@ namespace AsyncMultithreadClientServer
 		}
 		public byte[] getPacketBuffer()
 		{
-			// convert JSON to buffer and its length to a 16 bit unsigned integer buffer
+			// convert JSON to buffer and its length to a 16 bit unsigned short buffer
 			byte[] jsonBuffer = Encoding.UTF8.GetBytes(this.ToJson());
 			byte[] lengthBuffer = BitConverter.GetBytes(Convert.ToUInt16(jsonBuffer.Length));
 
@@ -67,6 +67,8 @@ namespace AsyncMultithreadClientServer
 			byte[] packetBuffer = new byte[lengthBuffer.Length + jsonBuffer.Length];
 			lengthBuffer.CopyTo(packetBuffer, 0);
 			jsonBuffer.CopyTo(packetBuffer, lengthBuffer.Length);
+			
+			//Console.WriteLine(Encoding.UTF8.GetString(packetBuffer));
 				
 			return packetBuffer;
 		}
@@ -91,7 +93,7 @@ namespace AsyncMultithreadClientServer
 			// Remaining bytes in the stream must be the Packet
 			byte[] jsonBuffer = new byte[packetByteSize];
 			await _msgStream.ReadAsync(jsonBuffer, 0, jsonBuffer.Length);
-
+			
 			// Convert to packet datatype
 			string jsonString = Encoding.UTF8.GetString(jsonBuffer);
 			packet = Packet.FromJson(jsonString);
