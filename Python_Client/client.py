@@ -3,18 +3,13 @@ import sys, socket
 from time import sleep
 import struct
 import json
+import os
 
 class Client:
 
-    def __init__(self, sock=None):
-        if sock is None:
-            #INET is IPv4
-            self.sock = socket.socket(
-                socket.AF_INET, socket.SOCK_STREAM)
-        else:
-            self.sock = sock
-
-        self.MSGLEN = 64
+    def __init__(self):
+        #INET is IPv4
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         print("Socket created.")
 
     def Run(self):
@@ -50,9 +45,16 @@ class Client:
     def Connect(self):
         connected = False;
         while not connected:
+            filedir = os.getcwd() + '/config.txt'
+            with open(filedir) as f:
+                content = f.readlines()
+
+            #also need to strip newline character...
+            addr = content[0].strip('\n')
+            #convert string to int
+            port = content[1].strip('\n')
+
             try:
-                addr = 'localhost'
-                port = 32890
                 self.sock.connect(('10.66.178.65', 32890))
                 print("Connected to " + addr + " server, at port " + str(port))
                 connected = True;
