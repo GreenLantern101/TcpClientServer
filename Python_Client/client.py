@@ -2,11 +2,7 @@
 import sys, socket
 from time import sleep
 import struct
-
-'''
-simple TCP client (sends/receives fixed messages only)
-to use for variable messages: send message length first, use flush()?, need receive loop
-'''
+import json
 
 class Client:
 
@@ -26,22 +22,17 @@ class Client:
         running = True
 
         while(running):
-            message_bytes = ''
+            message = ''
             try:
-                message_bytes = self.recv_msg(self.sock)
+                message = self.Receive_String(self.sock)
             except Exception as e:
                 print("Error while receiving: " + str(e))
                 break
 
-            if message_bytes:
-                message = message_bytes.decode("utf-8");
+            if message:
                 print(message)
                 if message.find("input") != -1:
                     self._handleInput()
-
-
-
-
 
             #sleep in seconds
             sleep(.010)
@@ -49,9 +40,8 @@ class Client:
     def _handleInput(self):
         read = input("How many candies to take (1-5): ")
         message = "{\"command\":\"input\", \"message\":\"" + read + "\"}"
-        message_bytes = message.encode("utf-8")
         #print(message_bytes)
-        self.send_msg(self.sock, message_bytes)
+        self.Send_String(self.sock, message)
 
     def Connect(self):
         connected = False;
@@ -63,28 +53,28 @@ class Client:
                 print("Connected to " + addr + " server, at port " + str(port))
                 connected = True;
             except:
-                print("attempting to connect...")
+                print("Failed to connect. Retrying...")
                 sleep(3)
-                print("connected = " + str(connected))
 
-    def send_msg(self, sock, msg):
+    def Send_String(self, sock, string):
         # Prefix each message with message length as 2 bytes (unsigned short)
-        msg = struct.pack('H', len(msg)) + msg
+        str_bytes = string.encode("utf-8")
+        toSend = struct.pack('H', len(str_bytes)) + str_bytes
         #print(msg)
-        sock.sendall(msg)
+        sock.sendall(toSend)
 
-    def recv_msg(self, sock):
+    def Receive_String(self, sock):
         # first two bytes are length of message
         raw_msglen = self.recvall(sock, 2)
 
         if not raw_msglen:
             return None
-        #print("Raw message length: " + str(raw_msglen))
         #convert bytes array into an unsigned short
         msglen = struct.unpack('H', raw_msglen)[0]
-        #print("Message length: " + str(msglen))
         # Read the message data
-        return self.recvall(sock, msglen)
+        bytes_data = self.recvall(sock, msglen)
+
+        return bytes_data.decode("utf-8")
 
     def recvall(self, sock, n):
         # Helper function to recv n bytes or return None if EOF is hit
