@@ -26,29 +26,32 @@ class Client:
         running = True
 
         while(running):
-            #send works
-            tosend = "hi".encode("utf-8")
-            print(tosend)
-            self.send_msg(self.sock, tosend)
-            '''
-            NOTE:
-            receive works on python end, but on c# server, returns non-fatal error (NEED TO SEND BACK A PACKET?)
-            this is because Receive() gets a FIXED size message (64 bytes)? --> need to be variable...
-            '''
+            message_bytes = ''
             try:
-                message = self.recv_msg(self.sock)
-                if message:
-                    print(message.decode("utf-8"))
+                message_bytes = self.recv_msg(self.sock)
             except Exception as e:
                 print("Error while receiving: " + str(e))
+                break
 
-            read = input("How many candies to take (1-5): ")
-            message = "{'command':'input', 'message':\"" + read + "\"}"
-            message_bytes = message.encode("utf-8")
-            #print(message_bytes)
-            self.send_msg(self.sock, message_bytes)
-            sleep(10)
+            if message_bytes:
+                message = message_bytes.decode("utf-8");
+                print(message)
+                if message.find("input") != -1:
+                    self._handleInput()
 
+
+
+
+
+            #sleep in seconds
+            sleep(.010)
+
+    def _handleInput(self):
+        read = input("How many candies to take (1-5): ")
+        message = "{\"command\":\"input\", \"message\":\"" + read + "\"}"
+        message_bytes = message.encode("utf-8")
+        #print(message_bytes)
+        self.send_msg(self.sock, message_bytes)
 
     def Connect(self):
         connected = False;
@@ -63,49 +66,23 @@ class Client:
                 print("attempting to connect...")
                 sleep(3)
                 print("connected = " + str(connected))
-    '''
-    def Send(self, msg):
-        totalsent = 0
-        print(msg)
-        while totalsent < self.MSGLEN:
-            try:
-                sent = self.sock.send(msg[totalsent:])
-            except Exception as msg:
-                print('Error code: ' + str(msg[0]) + ' , Error message : ' + str(msg[1]))
-            if sent == 0:
-                print("Unable to send.")
-                break
-            totalsent = totalsent + sent
-    '''
 
     def send_msg(self, sock, msg):
         # Prefix each message with message length as 2 bytes (unsigned short)
         msg = struct.pack('H', len(msg)) + msg
-        print(msg)
+        #print(msg)
         sock.sendall(msg)
 
-    '''
-    def Receive(self):
-        chunks = []
-        bytes_recd = 0
-        while bytes_recd < self.MSGLEN:
-            chunk = self.sock.recv(min(self.MSGLEN - bytes_recd, 2048))
-            if chunk == b'':
-                raise RuntimeError("Unable to receive.")
-            chunks.append(chunk)
-            bytes_recd = bytes_recd + len(chunk)
-        return b''.join(chunks)
-    '''
     def recv_msg(self, sock):
         # first two bytes are length of message
         raw_msglen = self.recvall(sock, 2)
 
         if not raw_msglen:
             return None
-        print("Raw message length: " + str(raw_msglen))
+        #print("Raw message length: " + str(raw_msglen))
         #convert bytes array into an unsigned short
         msglen = struct.unpack('H', raw_msglen)[0]
-        print("Message length: " + str(msglen))
+        #print("Message length: " + str(msglen))
         # Read the message data
         return self.recvall(sock, msglen)
 

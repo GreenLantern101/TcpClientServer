@@ -94,6 +94,9 @@ namespace AsyncMultithreadClientServer
 			byte[] jsonBuffer = new byte[packetByteSize];
 			await _msgStream.ReadAsync(jsonBuffer, 0, jsonBuffer.Length);
 			
+			//Console.WriteLine(Encoding.UTF8.GetString(lengthBuffer));
+			//Console.WriteLine(Encoding.UTF8.GetString(jsonBuffer));
+			
 			// Convert to packet datatype
 			string jsonString = Encoding.UTF8.GetString(jsonBuffer);
 			packet = Packet.FromJson(jsonString);
