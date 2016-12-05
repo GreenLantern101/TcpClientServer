@@ -8,7 +8,7 @@ namespace AsyncMultithreadClientServer
 	public class Game
 	{
 		// Objects for the game
-		private Server _server;
+		public Server _server;
 		private TcpClient _player;
 		private Socket _player_socket;
 		private Random rand;
@@ -24,14 +24,18 @@ namespace AsyncMultithreadClientServer
 		}
 		
 		// Constructor
-		public Game(Server server)
+		public Game()
 		{
-			_server = server;
 			rand = new Random();
 			
 			// Should be [20, 40]
 			numCandies = rand.Next(20, 40);
 			Console.WriteLine("There are {0} candies.", numCandies);
+			
+			
+			// start server after game made
+			this._server = new Server();
+			_server.Start(this);
 		}
 		
 		public void RemoveCandies(int num)
@@ -190,14 +194,14 @@ namespace AsyncMultithreadClientServer
 		}
 		
 		#region Program Execution
-		public static Server server;
+		public static Game game;
 
 		// For when the user Presses Ctrl-C, this will gracefully shutdown the server
 		public static void InterruptHandler(object sender, ConsoleCancelEventArgs args)
 		{
 			args.Cancel = true;
-			if (server != null)
-				server.Shutdown();
+			if (game._server != null)
+				game._server.Shutdown();
 		}
 
 		public static void Main(string[] args)
@@ -205,8 +209,8 @@ namespace AsyncMultithreadClientServer
 			// Handler for Ctrl-C presses
 			Console.CancelKeyPress += InterruptHandler;
 			
-			server = new Server();
-			server.Start();
+			game = new Game();
+			
 		}
 		#endregion // Program Execution
 	}

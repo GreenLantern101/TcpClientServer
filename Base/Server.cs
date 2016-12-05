@@ -20,7 +20,6 @@ namespace AsyncMultithreadClientServer
 
 		// Game stuff
 		private Thread gameThread = null;
-		private Game _currentGame = null;
 
 		// Other data
 		public readonly string Name;
@@ -63,7 +62,7 @@ namespace AsyncMultithreadClientServer
 			if (client != null)
 				client.Disconnect();
 		}
-		public void Start()
+		public void Start(Game game)
 		{
 			//------------------------------------------------ start server
 			Console.WriteLine("Starting the \"{0}\" server on port {1}.", Name, port_me); 
@@ -80,12 +79,11 @@ namespace AsyncMultithreadClientServer
 			//connect game client...
 			client.Connect();
 			
-			
 			//------------------------------------------------- run server & client
-			this.Run();
+			this.Run(game);
 		}
 
-		public void Run()
+		public void Run(Game _currentGame)
 		{
 			//server vars
 			List<Task> newConnectionTasks = new List<Task>();
@@ -104,8 +102,6 @@ namespace AsyncMultithreadClientServer
 					
 				//Start a game for the first new connection
 				if (newconnection) {
-					//start new game
-					_currentGame = new Game(this);
 					//add networked player to game
 					_currentGame.AddPlayer(tcpClient_other);
 
@@ -127,13 +123,13 @@ namespace AsyncMultithreadClientServer
 				
 				//poll for local player input changes
 				if (client.changed_local) {
-					this._currentGame.HandleInputAction(client.action_local);
+					_currentGame.HandleInputAction(client.action_local);
 					//reset flag
 					client.changed_local = false;
 				}
 				//poll for remote player input changes
 				if (client.changed_remote) {
-					this._currentGame.SyncGame_obey(client.action_remote);
+					_currentGame.SyncGame_obey(client.action_remote);
 					//reset flag
 					client.changed_remote = false;
 				}
