@@ -17,14 +17,12 @@ namespace AsyncMultithreadClientServer
 		private IPAddress ipAddress_other;
 		private int Port;
 		public bool _clientRequestedDisconnect = false;
-		
-		private Game game;
 
 		// Messaging
 		private NetworkStream _msgStream = null;
 		private Dictionary<string, Func<string, Task>> _commandHandlers = new Dictionary<string, Func<string, Task>>();
 
-		public Client(Game game)
+		public Client()
 		{
 			tcpClient = new TcpClient(AddressFamily.InterNetwork);
 			
@@ -32,8 +30,6 @@ namespace AsyncMultithreadClientServer
 			string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + "/../../config.txt");	
 			ipAddress_other = IPAddress.Parse(lines[0]);
 			Port = int.Parse(lines[1]);
-			
-			this.game = game;
 		}
 		// Connects to the games server
 		public void Connect()
