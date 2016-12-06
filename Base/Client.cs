@@ -103,21 +103,23 @@ namespace AsyncMultithreadClientServer
 		private Task _handleBye(string message)
 		{
 			Console.WriteLine(message);
-			return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
+			return null;
+			//return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
 		}
 
 		// Just prints out a message sent from the server
 		private Task _handleMessage(string message)
 		{
 			Console.Write(message);
-			return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
+			return null;
+			//return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
 		}
 		private Task _handleSync(string message)
 		{
 			this.changed_remote = true;
 			this.action_remote = message;
-			
-			return Task.FromResult(0);
+			return null;
+			//return Task.FromResult(0);
 		}
 
 		// Gets input from the user and sends it to the server

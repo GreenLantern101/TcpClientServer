@@ -178,7 +178,7 @@ namespace AsyncMultithreadClientServer
 		private async Task _handleNewConnection()
 		{
 			// Get the new client using a Future
-			this.tcpClient_other = await tcpListener.AcceptTcpClientAsync();
+			this.tcpClient_other = await tcpListener.BeginAcceptTcpClient();
 			Console.WriteLine("New connection from {0}.", tcpClient_other.Client.RemoteEndPoint);
 
 			// Send a welcome message
