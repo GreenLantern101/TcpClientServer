@@ -50,7 +50,14 @@ namespace AsyncMultithreadClientServer
 			try {
 				byte[] packetBuffer = packet.getPacketBuffer();
 				// Send the packet
-				await stream.BeginWrite(packetBuffer, 0, packetBuffer.Length);
+				//await stream.BeginWrite(packetBuffer, 0, packetBuffer.Length);
+				await Task<int>.Factory.FromAsync(
+				stream.BeginWrite, 
+				stream.EndRead, 
+				packetBuffer, 
+				0, 
+				packetBuffer.Length,
+				null);
 
 			} catch (Exception e) {
 				Console.WriteLine("Error sending a packet.");
@@ -87,12 +94,26 @@ namespace AsyncMultithreadClientServer
 			
 			// First two bytes are the size of the Packet
 			byte[] lengthBuffer = new byte[2];
-			await _msgStream.BeginRead(lengthBuffer, 0, 2);
+			//await _msgStream.BeginRead(lengthBuffer, 0, 2);
+			await Task<int>.Factory.FromAsync(
+				_msgStream.BeginRead, 
+				_msgStream.EndRead, 
+				lengthBuffer, 
+				0, 
+				lengthBuffer.Length, 
+				null);
 			ushort packetByteSize = BitConverter.ToUInt16(lengthBuffer, 0);
 
 			// Remaining bytes in the stream must be the Packet
 			byte[] jsonBuffer = new byte[packetByteSize];
-			await _msgStream.BeginRead(jsonBuffer, 0, jsonBuffer.Length);
+			//await _msgStream.BeginRead(jsonBuffer, 0, jsonBuffer.Length);
+			await Task<int>.Factory.FromAsync(
+				_msgStream.BeginRead, 
+				_msgStream.EndRead,
+				jsonBuffer, 
+				0, 
+				jsonBuffer.Length, 
+				null);
 			
 			//Console.WriteLine(Encoding.UTF8.GetString(lengthBuffer));
 			//Console.WriteLine(Encoding.UTF8.GetString(jsonBuffer));

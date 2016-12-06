@@ -178,12 +178,18 @@ namespace AsyncMultithreadClientServer
 		private async Task _handleNewConnection()
 		{
 			// Get the new client using a Future
-			this.tcpClient_other = await tcpListener.BeginAcceptTcpClient();
+			//this.tcpClient_other = await tcpListener.BeginAcceptTcpClient();
+			tcpListener.BeginAcceptTcpClient(new AsyncCallback(AcceptClientCallback), tcpListener);
 			Console.WriteLine("New connection from {0}.", tcpClient_other.Client.RemoteEndPoint);
 
 			// Send a welcome message
 			string msg = String.Format("Welcome to the \"{0}\" server.\n", Name);
 			await Packet.SendPacket(tcpClient_other.GetStream(), new Packet("message", msg));
+		}
+		void AcceptClientCallback(IAsyncResult ar)
+		{
+			tcpListener = (TcpListener) ar.AsyncState;
+			this.tcpClient_other = tcpListener.EndAcceptTcpClient(ar);
 		}
 
 		// Checks if a client has disconnected ungracefully
