@@ -2,7 +2,6 @@
 using System;
 using System.Text;
 using System.Net.Sockets;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace SyncClientServer
@@ -45,12 +44,12 @@ namespace SyncClientServer
 		
 		#region SENDING
 		// Sends a packet to a client asynchronously
-		public static async Task SendPacket(NetworkStream stream, Packet packet)
+		public static void SendPacket(NetworkStream stream, Packet packet)
 		{
 			try {
 				byte[] packetBuffer = packet.getPacketBuffer();
 				// Send the packet
-				await stream.WriteAsync(packetBuffer, 0, packetBuffer.Length);
+				stream.WriteAsync(packetBuffer, 0, packetBuffer.Length);
 
 			} catch (Exception e) {
 				Console.WriteLine("Error sending a packet.");
@@ -77,22 +76,22 @@ namespace SyncClientServer
 		#region RECEIVING
 		public static Packet getPacketFromStream(NetworkStream _msgStream)
 		{
-			Task<Packet> getfromstream = Packet.getTaskFromStream(_msgStream);
-			Packet packet = getfromstream.GetAwaiter().GetResult();
+			Packet getfromstream = Packet.getTaskFromStream(_msgStream);
+			Packet packet = getfromstream;
 			return packet;
 		}
-		private static async Task<Packet> getTaskFromStream(NetworkStream _msgStream)
+		private static Packet getTaskFromStream(NetworkStream _msgStream)
 		{
 			Packet packet;
 			
 			// First two bytes are the size of the Packet
 			byte[] lengthBuffer = new byte[2];
-			await _msgStream.ReadAsync(lengthBuffer, 0, 2);
+			_msgStream.ReadAsync(lengthBuffer, 0, 2);
 			ushort packetByteSize = BitConverter.ToUInt16(lengthBuffer, 0);
 
 			// Remaining bytes in the stream must be the Packet
 			byte[] jsonBuffer = new byte[packetByteSize];
-			await _msgStream.ReadAsync(jsonBuffer, 0, jsonBuffer.Length);
+			_msgStream.ReadAsync(jsonBuffer, 0, jsonBuffer.Length);
 			
 			//Console.WriteLine(Encoding.UTF8.GetString(lengthBuffer));
 			//Console.WriteLine(Encoding.UTF8.GetString(jsonBuffer));

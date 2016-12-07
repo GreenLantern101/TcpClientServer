@@ -1,10 +1,8 @@
 ﻿
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace SyncClientServer
 {
@@ -29,7 +27,7 @@ namespace SyncClientServer
 		public Server()
 		{
 			Name = "SERVER_ONE";
-			port_me = 32890;
+			port_me = 32887;
 			Running = false;
 			
 			// Create the listener, listening at any ip address
@@ -74,29 +72,24 @@ namespace SyncClientServer
 			Console.WriteLine("Waiting for incoming connections...");
 
 			//------------------------------------------------- start client
-			
+			/*
 			client = new Client();
 			//connect game client...
 			client.Connect();
-			
+			*/
 			//------------------------------------------------- run server & client
 			this.Run(game);
 		}
 
 		public void Run(Game _currentGame)
 		{
-			//server vars
-			List<Task> newConnectionTasks = new List<Task>();
-			
-			//client vars
-			List<Task> messagetasks = new List<Task>();
 			
 			while (Running) {
 				//------------------------------------------------- server run cycle
 				bool newconnection = false;
 				// Handle any new clients
 				if (tcpListener.Pending()) {
-					newConnectionTasks.Add(_handleNewConnection());
+					_handleNewConnection();
 					newconnection = true;
 				}
 					
@@ -117,9 +110,9 @@ namespace SyncClientServer
 				}
 				
 				//------------------------------------------------- client run cycle
-				
+				/*
 				// Check for new packets
-				messagetasks.Add(this.client._handleIncomingPackets());
+				client._handleIncomingPackets();
 				
 				//poll for local player input changes
 				if (client.changed_local) {
@@ -141,15 +134,13 @@ namespace SyncClientServer
 					Console.WriteLine("Other server disconnected from us ungracefully.");
 					Thread.Sleep(3000);
 				}
-				
+				*/
 				
 				//--------------------------------------------------- Take a small nap
 				Thread.Sleep(10);
 			}
 
 			//-------------------------------------------------------- server STOP
-			// If client connected after loop exited, allow 1 second to finish task.
-			Task.WaitAll(newConnectionTasks.ToArray(), 1000);
 
 			// Shutdown all of the threads, regardless if they are done or not
 			if (gameThread != null)
@@ -166,24 +157,21 @@ namespace SyncClientServer
 			Console.WriteLine("The server has been shut down.");
 			
 			//-------------------------------------------------------- client STOP
-			
-			// Just incase we have anymore packets, give them one second to be processed
-			Task.WaitAll(messagetasks.ToArray(), 1000);
 
 			// Cleanup
 			this.client._cleanupNetworkResources();
 		}
 
 		// Awaits for a new connection, sets it to networked client
-		private async Task _handleNewConnection()
+		private void _handleNewConnection()
 		{
 			// Get the new client using a Future
-			this.tcpClient_other = await tcpListener.AcceptTcpClientAsync();
+			this.tcpClient_other = tcpListener.AcceptTcpClient();
 			Console.WriteLine("New connection from {0}.", tcpClient_other.Client.RemoteEndPoint);
 
 			// Send a welcome message
 			string msg = String.Format("Welcome to the \"{0}\" server.\n", Name);
-			await Packet.SendPacket(tcpClient_other.GetStream(), new Packet("message", msg));
+			Packet.SendPacket(tcpClient_other.GetStream(), new Packet("message", msg));
 		}
 
 		// Checks if a client has disconnected ungracefully
@@ -207,13 +195,11 @@ namespace SyncClientServer
 				message = "Goodbye.";
 
 			// Send the "bye" message
-			Task byePacket = Packet.SendPacket(client.GetStream(), new Packet("bye", message));
+			Packet.SendPacket(client.GetStream(), new Packet("bye", message));
 
 			// Give the client some time to send and process the graceful disconnect
 			Thread.Sleep(500);
 
-			// Cleanup resources on our end
-			byePacket.GetAwaiter().GetResult();
 			CleanupClient(client);
 		}
 		
@@ -227,7 +213,7 @@ namespace SyncClientServer
 
 		// Will get a single packet from a TcpClient
 		// Returns null if no data available or issue
-		public async Task<Packet> ReceivePacket(TcpClient client)
+		public Packet ReceivePacket(TcpClient client)
 		{
 			Packet packet = null;
 			try {

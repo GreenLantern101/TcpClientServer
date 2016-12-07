@@ -10,7 +10,6 @@ namespace SyncClientServer
 		// Objects for the game
 		public Server _server;
 		private TcpClient _player;
-		private Socket _player_socket;
 		private Random rand;
 		private bool _needToDisconnectClient = false;
 		
@@ -75,7 +74,7 @@ namespace SyncClientServer
 		public void SyncGame_command()
 		{
 			Packet syncPacket = new Packet("sync", this.numCandies.ToString());
-			Packet.SendPacket(_player.GetStream(), syncPacket).GetAwaiter().GetResult();
+			Packet.SendPacket(_player.GetStream(), syncPacket);
 		}
 		
 		// obey with an order to sync game
@@ -114,7 +113,7 @@ namespace SyncClientServer
 			string message = numCandies + " candies left.\n"
 			                 + "How many candies will you take(1-5)? ";
 			Packet inputPacket = new Packet("input", message);
-			Packet.SendPacket(_player.GetStream(), inputPacket).GetAwaiter().GetResult();
+			Packet.SendPacket(_player.GetStream(), inputPacket);
 		}
 		
 
@@ -130,7 +129,7 @@ namespace SyncClientServer
 				Packet introPacket = new Packet("message",
 					                     "Hi, you may take 1 to 5 candies each turn. " +
 					                     "The player who takes the last candy loses.\n");
-				Packet.SendPacket(_player.GetStream(), introPacket).GetAwaiter().GetResult();
+				Packet.SendPacket(_player.GetStream(), introPacket);
 			} else
 				return;
 			
@@ -147,7 +146,7 @@ namespace SyncClientServer
 				// Read their answer
 				Packet answerPacket = null;
 				while (answerPacket == null) {
-					answerPacket = _server.ReceivePacket(_player).GetAwaiter().GetResult();
+					answerPacket = _server.ReceivePacket(_player);
 					Thread.Sleep(10);
 				}
 
@@ -165,7 +164,7 @@ namespace SyncClientServer
 					this.HandleInputAction(answerPacket.Message);
 
 					// Send the message
-					Packet.SendPacket(_player.GetStream(), responsePacket).GetAwaiter().GetResult();
+					Packet.SendPacket(_player.GetStream(), responsePacket);
 				}
 				
 

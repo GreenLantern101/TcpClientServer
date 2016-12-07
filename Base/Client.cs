@@ -66,7 +66,7 @@ namespace SyncClientServer
 		{
 			Console.WriteLine("Disconnecting...");
 			_clientRequestedDisconnect = true;
-			Packet.SendPacket(this._msgStream, new Packet("bye")).GetAwaiter().GetResult();
+			Packet.SendPacket(this._msgStream, new Packet("bye"));
 		}
 		public void _cleanupNetworkResources()
 		{
