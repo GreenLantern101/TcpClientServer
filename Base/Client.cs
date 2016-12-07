@@ -145,6 +145,6 @@ namespace AsyncMultithreadClientServer
 		public string action_local = "";
 		public bool changed_remote = false;
 		public string action_remote = "";
-		#endregion // Command Handlers
+		#endregion
 	}
 }

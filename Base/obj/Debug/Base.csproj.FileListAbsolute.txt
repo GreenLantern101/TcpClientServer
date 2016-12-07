@@ -12,3 +12,7 @@ C:\Users\Apache\Documents\GitHub\TcpClientServer\Base\bin\Debug\Newtonsoft.Json.
 C:\Users\Apache\Documents\GitHub\TcpClientServer\Base\obj\Debug\Base.csprojResolveAssemblyReference.cache
 C:\Users\Apache\Documents\GitHub\TcpClientServer\Base\obj\Debug\Base.exe
 C:\Users\Apache\Documents\GitHub\TcpClientServer\Base\obj\Debug\Base.pdb
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Base\bin\Debug\AsyncBridge.Net35.dll
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Base\bin\Debug\System.Threading.dll
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Base\bin\Debug\AsyncBridge.Net35.xml
+C:\Users\Apache\Documents\GitHub\TcpClientServer\Base\bin\Debug\System.Threading.xml
