@@ -55,7 +55,7 @@ class Client:
             port = content[1].strip('\n')
 
             try:
-                self.sock.connect(('10.66.178.65', 32890))
+                self.sock.connect((addr, int(port)))
                 print("Connected to " + addr + " server, at port " + str(port))
                 connected = True;
             except:
