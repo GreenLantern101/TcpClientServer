@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
-namespace AsyncMultithreadClientServer
+namespace SyncClientServer
 {
 	//essentially a wrapper over TcpClient
 	public class Client
@@ -143,6 +143,6 @@ namespace AsyncMultithreadClientServer
 		public string action_local = "";
 		public bool changed_remote = false;
 		public string action_remote = "";
-		#endregion // Command Handlers
+		#endregion
 	}
 }

@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace AsyncMultithreadClientServer
+namespace SyncClientServer
 {
 	public class Packet
 	{

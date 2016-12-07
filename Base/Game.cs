@@ -3,7 +3,7 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 
-namespace AsyncMultithreadClientServer
+namespace SyncClientServer
 {
 	public class Game
 	{
