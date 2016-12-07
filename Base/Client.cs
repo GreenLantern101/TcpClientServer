@@ -4,7 +4,6 @@ using System.Net.Sockets;
 using System.Net;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 
 namespace SyncClientServer
@@ -20,7 +19,7 @@ namespace SyncClientServer
 
 		// Messaging
 		private NetworkStream _msgStream = null;
-		private Dictionary<string, Func<string, Task>> _commandHandlers = new Dictionary<string, Func<string, Task>>();
+		private Dictionary<string, Func<string, bool>> _commandHandlers = new Dictionary<string, Func<string, bool>>();
 
 		public Client()
 		{
@@ -80,7 +79,7 @@ namespace SyncClientServer
 
 		// Checks for new incoming messages and handles them
 		// Handles one Packet at a time, even if more than one is in the memory stream
-		public async Task _handleIncomingPackets()
+		public void _handleIncomingPackets()
 		{
 			Packet packet = new Packet();
 			try {
@@ -91,7 +90,7 @@ namespace SyncClientServer
 
 					// Dispatch it
 					try {
-						await _commandHandlers[packet.Command](packet.Message);
+						_commandHandlers[packet.Command](packet.Message);
 					} catch (KeyNotFoundException) {
 					}
 				}
@@ -100,28 +99,27 @@ namespace SyncClientServer
 		}
 
 		#region Command Handlers
-		private Task _handleBye(string message)
+		private bool _handleBye(string message)
 		{
 			Console.WriteLine(message);
-			return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
+			return true;
 		}
 
 		// Just prints out a message sent from the server
-		private Task _handleMessage(string message)
+		private bool _handleMessage(string message)
 		{
 			Console.Write(message);
-			return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
+			return true;
 		}
-		private Task _handleSync(string message)
+		private bool _handleSync(string message)
 		{
 			this.changed_remote = true;
 			this.action_remote = message;
-			
-			return Task.FromResult(0);
+			return true;
 		}
 
 		// Gets input from the user and sends it to the server
-		private async Task _handleInput(string message)
+		private bool _handleInput(string message)
 		{
 			// Print the prompt and get a response to send
 			Console.Write(message);
@@ -137,7 +135,9 @@ namespace SyncClientServer
 			// Send the response
 			Packet resp = new Packet("input", responseMsg);
 			
-			await Packet.SendPacket(this._msgStream, resp);
+			Packet.SendPacket(this._msgStream, resp);
+			
+			return true;
 		}
 		public bool changed_local = false;
 		public string action_local = "";
