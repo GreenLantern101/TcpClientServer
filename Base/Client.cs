@@ -19,8 +19,7 @@ namespace SyncClientServer
 
 		// Messaging
 		private NetworkStream _msgStream = null;
-		private Dictionary<string, Func<string, bool>> _commandHandlers = new Dictionary<string, Func<string, bool>>();
-
+		
 		public Client()
 		{
 			tcpClient = new TcpClient(AddressFamily.InterNetwork);
@@ -51,12 +50,6 @@ namespace SyncClientServer
 
 				// Get the message stream
 				_msgStream = tcpClient.GetStream();
-
-				// Hook up packet command handlers
-				_commandHandlers["bye"] = _handleBye;
-				_commandHandlers["message"] = _handleMessage;
-				_commandHandlers["input"] = _handleInput;
-				_commandHandlers["sync"] = _handleSync;
 			}
 		}
 
@@ -66,7 +59,7 @@ namespace SyncClientServer
 		{
 			Console.WriteLine("Disconnecting...");
 			_clientRequestedDisconnect = true;
-			Packet.SendPacket(this._msgStream, new Packet("bye"));
+			Packet.SendPacket(this._msgStream, new Packet("bye", ""));
 		}
 		public void _cleanupNetworkResources()
 		{
@@ -81,41 +74,48 @@ namespace SyncClientServer
 		// Handles one Packet at a time, even if more than one is in the memory stream
 		public void _handleIncomingPackets()
 		{
-			Packet packet = new Packet();
-			try {
-				// Check for new incoming messages
-				if (tcpClient.Available > 0) {
+			Packet packet = new Packet("", "");
+			// Handle incoming messages
+			if (tcpClient.Available > 0) {
 					
-					packet = Packet.getPacketFromStream(_msgStream);
+				packet = Packet.getPacketFromStream(_msgStream);
 
-					// Dispatch it
-					try {
-						_commandHandlers[packet.Command](packet.Message);
-					} catch (KeyNotFoundException) {
-					}
+				switch (packet.Command) {
+					case "bye":
+						_handleBye(packet.Message);
+						break;
+					case "input":
+						_handleInput(packet.Message);
+						break;
+					case "message":
+						_handleMessage(packet.Message);
+						break;
+					case "sync":
+						_handleSync(packet.Message);
+						break;
+					default:
+						Console.WriteLine("Invalid packet command received.");
+						break;
+						
 				}
-			} catch (Exception e) {
 			}
 		}
 
 		#region Command Handlers
-		private bool _handleBye(string message)
+		private void _handleBye(string message)
 		{
 			Console.WriteLine(message);
-			return true;
 		}
 
 		// Just prints out a message sent from the server
-		private bool _handleMessage(string message)
+		private void _handleMessage(string message)
 		{
 			Console.Write(message);
-			return true;
 		}
-		private bool _handleSync(string message)
+		private void _handleSync(string message)
 		{
 			this.changed_remote = true;
 			this.action_remote = message;
-			return true;
 		}
 
 		// Gets input from the user and sends it to the server
@@ -126,15 +126,12 @@ namespace SyncClientServer
 			
 			string responseMsg = Console.ReadLine();
 			
-			
 			//NOTE: for some reason, calling synchronous game method here doesn't work...
 			this.changed_local = true;
 			this.action_local = responseMsg;
 			
-			
 			// Send the response
 			Packet resp = new Packet("input", responseMsg);
-			
 			Packet.SendPacket(this._msgStream, resp);
 			
 			return true;

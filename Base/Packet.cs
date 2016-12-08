@@ -15,7 +15,7 @@ namespace SyncClientServer
 		public string Message { get; set; }
 
 		// Makes a packet
-		public Packet(string command = "", string message = "")
+		public Packet(string command, string message)
 		{
 			Command = command;
 			Message = message;
@@ -49,7 +49,7 @@ namespace SyncClientServer
 			try {
 				byte[] packetBuffer = packet.getPacketBuffer();
 				// Send the packet
-				stream.WriteAsync(packetBuffer, 0, packetBuffer.Length);
+				stream.Write(packetBuffer, 0, packetBuffer.Length);
 
 			} catch (Exception e) {
 				Console.WriteLine("Error sending a packet.");
@@ -86,12 +86,12 @@ namespace SyncClientServer
 			
 			// First two bytes are the size of the Packet
 			byte[] lengthBuffer = new byte[2];
-			_msgStream.ReadAsync(lengthBuffer, 0, 2);
+			_msgStream.Read(lengthBuffer, 0, 2);
 			ushort packetByteSize = BitConverter.ToUInt16(lengthBuffer, 0);
 
 			// Remaining bytes in the stream must be the Packet
 			byte[] jsonBuffer = new byte[packetByteSize];
-			_msgStream.ReadAsync(jsonBuffer, 0, jsonBuffer.Length);
+			_msgStream.Read(jsonBuffer, 0, jsonBuffer.Length);
 			
 			//Console.WriteLine(Encoding.UTF8.GetString(lengthBuffer));
 			//Console.WriteLine(Encoding.UTF8.GetString(jsonBuffer));

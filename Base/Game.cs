@@ -106,8 +106,6 @@ namespace SyncClientServer
 		{
 			_needToDisconnectClient = (client == _player);
 		}
-		
-		
 		private void PollForInput()
 		{
 			string message = numCandies + " candies left.\n"
@@ -115,8 +113,6 @@ namespace SyncClientServer
 			Packet inputPacket = new Packet("input", message);
 			Packet.SendPacket(_player.GetStream(), inputPacket);
 		}
-		
-
 		// Main loop of the Game
 		// Packets are sent sent synchronously though
 		public void Run()
@@ -158,7 +154,7 @@ namespace SyncClientServer
 
 				// Check input
 				if (answerPacket.Command == "input") {
-					Packet responsePacket = new Packet("message");
+					Packet responsePacket = new Packet("message","");
 					responsePacket.Message = "Input action received.";
 					
 					this.HandleInputAction(answerPacket.Message);

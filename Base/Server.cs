@@ -72,11 +72,11 @@ namespace SyncClientServer
 			Console.WriteLine("Waiting for incoming connections...");
 
 			//------------------------------------------------- start client
-			/*
+			
 			client = new Client();
 			//connect game client...
 			client.Connect();
-			*/
+			
 			//------------------------------------------------- run server & client
 			this.Run(game);
 		}
@@ -110,7 +110,7 @@ namespace SyncClientServer
 				}
 				
 				//------------------------------------------------- client run cycle
-				/*
+				
 				// Check for new packets
 				client._handleIncomingPackets();
 				
@@ -134,7 +134,7 @@ namespace SyncClientServer
 					Console.WriteLine("Other server disconnected from us ungracefully.");
 					Thread.Sleep(3000);
 				}
-				*/
+				
 				
 				//--------------------------------------------------- Take a small nap
 				Thread.Sleep(10);
@@ -186,7 +186,7 @@ namespace SyncClientServer
 			}
 		}
 		// Gracefully disconnect a TcpClient
-		public void DisconnectClient(TcpClient client, string message = "")
+		public void DisconnectClient(TcpClient client, string message)
 		{
 			Console.WriteLine("Disconnecting the client from {0}.", client.Client.RemoteEndPoint);
 
