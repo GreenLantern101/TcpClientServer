@@ -23,6 +23,8 @@ namespace SyncClientServer
 		public readonly string Name;
 		public readonly int port_me;
 		public bool Running { get; private set; }
+		
+		Game _currentGame;
 
 		public Server()
 		{
@@ -71,6 +73,9 @@ namespace SyncClientServer
 			Running = true;
 			Console.WriteLine("Waiting for incoming connections...");
 			
+			_currentGame = game;
+			
+			
 			Thread server_conn = new Thread(new ThreadStart(ServerConnectLoop));
 			server_conn.Start();
 			//------------------------------------------------- start client
@@ -81,11 +86,12 @@ namespace SyncClientServer
 			
 			
 			//Thread.Sleep(1);
-			server_conn.Join();
+			//server_conn.Join();
 			//Thread server_run = new Thread(new ThreadStart(ServerRunLoop));
 			
 			//------------------------------------------------- run server & client
-			this.Run(game);
+			
+			this.Run();
 		}
 
 		void ServerConnectLoop()
@@ -95,11 +101,6 @@ namespace SyncClientServer
 			}
 			_handleNewConnection();
 			
-			//------------------------------------------------- server run cycle
-			
-		}
-		public void Run(Game _currentGame)
-		{
 			//Start a game for the first new connection
 			//add networked player to game
 			_currentGame.AddPlayer(tcpClient_other);
@@ -109,11 +110,11 @@ namespace SyncClientServer
 			this.gameThread = new Thread(new ThreadStart(_currentGame.Run));
 			gameThread.Start();
 					
-					
 			//SYNC GAME AT BEGINNING immediately after connecting
 			_currentGame.SyncGame_command();
-			
-			
+		}
+		public void Run()
+		{
 			while (Running) {
 				
 				//------------------------------------------------- client run cycle

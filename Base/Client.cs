@@ -43,15 +43,6 @@ namespace SyncClientServer
 					Thread.Sleep(3000);
 				}
 			}
-		}
-		// Connects to the games server
-		public void Connect()
-		{
-			Thread client_conn = new Thread(new ThreadStart(ClientConnectLoop));
-			client_conn.Start();
-			//Thread.Sleep(1);
-			client_conn.Join();
-
 			// check that we've connected
 			if (tcpClient.Connected) {
 				Console.WriteLine("Connected to server at {0}.", tcpClient.Client.RemoteEndPoint);
@@ -59,6 +50,14 @@ namespace SyncClientServer
 				// Get the message stream
 				_msgStream = tcpClient.GetStream();
 			}
+		}
+		// Connects to the games server
+		public void Connect()
+		{
+			Thread client_conn = new Thread(new ThreadStart(ClientConnectLoop));
+			client_conn.Start();
+			//Thread.Sleep(1);
+			//client_conn.Join();
 		}
 
 		// Requests a disconnect, will send "bye" message
