@@ -70,44 +70,51 @@ namespace SyncClientServer
 			tcpListener.Start();
 			Running = true;
 			Console.WriteLine("Waiting for incoming connections...");
-
+			
+			Thread server_conn = new Thread(new ThreadStart(ServerConnectLoop));
+			server_conn.Start();
 			//------------------------------------------------- start client
 			
 			client = new Client();
 			//connect game client...
 			client.Connect();
 			
+			
+			//Thread.Sleep(1);
+			server_conn.Join();
+			//Thread server_run = new Thread(new ThreadStart(ServerRunLoop));
+			
 			//------------------------------------------------- run server & client
 			this.Run(game);
 		}
 
+		void ServerConnectLoop()
+		{
+			while (!tcpListener.Pending()) {
+				Thread.Sleep(100);
+			}
+			_handleNewConnection();
+			
+			//------------------------------------------------- server run cycle
+			
+		}
 		public void Run(Game _currentGame)
 		{
+			//Start a game for the first new connection
+			//add networked player to game
+			_currentGame.AddPlayer(tcpClient_other);
+
+			// Start the game in a new thread!
+			Console.WriteLine("Starting a \"{0}\" game.", _currentGame.Name);
+			this.gameThread = new Thread(new ThreadStart(_currentGame.Run));
+			gameThread.Start();
+					
+					
+			//SYNC GAME AT BEGINNING immediately after connecting
+			_currentGame.SyncGame_command();
+			
 			
 			while (Running) {
-				//------------------------------------------------- server run cycle
-				bool newconnection = false;
-				// Handle any new clients
-				if (tcpListener.Pending()) {
-					_handleNewConnection();
-					newconnection = true;
-				}
-					
-				//Start a game for the first new connection
-				if (newconnection) {
-					//add networked player to game
-					_currentGame.AddPlayer(tcpClient_other);
-
-					// Start the game in a new thread!
-					Console.WriteLine("Starting a \"{0}\" game.", _currentGame.Name);
-					this.gameThread = new Thread(new ThreadStart(_currentGame.Run));
-					gameThread.Start();
-					
-					
-					//SYNC GAME AT BEGINNING immediately after connecting
-					_currentGame.SyncGame_command();
-
-				}
 				
 				//------------------------------------------------- client run cycle
 				
@@ -128,7 +135,7 @@ namespace SyncClientServer
 				}
 
 				// Make sure that we didn't have a graceless disconnect
-				if (IsDisconnected(this.client.tcpClient) 
+				if (IsDisconnected(this.client.tcpClient)
 				    && !this.client._clientRequestedDisconnect) {
 					Running = false;
 					Console.WriteLine("Other server disconnected from us ungracefully.");

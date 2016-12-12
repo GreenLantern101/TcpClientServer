@@ -28,9 +28,9 @@ namespace SyncClientServer
 			string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + "/../../config.txt");	
 			ipAddress_other = IPAddress.Parse(lines[0]);
 			Port = int.Parse(lines[1]);
+			
 		}
-		// Connects to the games server
-		public void Connect()
+		void ClientConnectLoop()
 		{
 			//keep trying to connect to server, once per second
 			while (!tcpClient.Connected) {
@@ -43,6 +43,14 @@ namespace SyncClientServer
 					Thread.Sleep(3000);
 				}
 			}
+		}
+		// Connects to the games server
+		public void Connect()
+		{
+			Thread client_conn = new Thread(new ThreadStart(ClientConnectLoop));
+			client_conn.Start();
+			//Thread.Sleep(1);
+			client_conn.Join();
 
 			// check that we've connected
 			if (tcpClient.Connected) {
