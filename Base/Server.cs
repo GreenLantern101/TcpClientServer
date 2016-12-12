@@ -1,12 +1,10 @@
 ﻿
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace AsyncMultithreadClientServer
+namespace SyncClientServer
 {
 	public class Server
 	{
@@ -25,11 +23,13 @@ namespace AsyncMultithreadClientServer
 		public readonly string Name;
 		public readonly int port_me;
 		public bool Running { get; private set; }
+		
+		Game _currentGame;
 
 		public Server()
 		{
 			Name = "SERVER_ONE";
-			port_me = 32890;
+			port_me = 32887;
 			Running = false;
 			
 			// Create the listener, listening at any ip address
@@ -72,54 +72,55 @@ namespace AsyncMultithreadClientServer
 			tcpListener.Start();
 			Running = true;
 			Console.WriteLine("Waiting for incoming connections...");
-
+			
+			_currentGame = game;
+			
+			
+			Thread server_conn = new Thread(new ThreadStart(ServerConnectLoop));
+			server_conn.Start();
 			//------------------------------------------------- start client
 			
 			client = new Client();
 			//connect game client...
 			client.Connect();
 			
+			
+			//Thread.Sleep(1);
+			//server_conn.Join();
+			//Thread server_run = new Thread(new ThreadStart(ServerRunLoop));
+			
 			//------------------------------------------------- run server & client
-			this.Run(game);
+			
+			this.Run();
 		}
 
-		public void Run(Game _currentGame)
+		void ServerConnectLoop()
 		{
-			//server vars
-			List<Task> newConnectionTasks = new List<Task>();
+			while (!tcpListener.Pending()) {
+				Thread.Sleep(100);
+			}
+			_handleNewConnection();
 			
-			//client vars
-			List<Task> messagetasks = new List<Task>();
-			
+			//Start a game for the first new connection
+			//add networked player to game
+			_currentGame.AddPlayer(tcpClient_other);
+
+			// Start the game in a new thread!
+			Console.WriteLine("Starting a \"{0}\" game.", _currentGame.Name);
+			this.gameThread = new Thread(new ThreadStart(_currentGame.Run));
+			gameThread.Start();
+					
+			//SYNC GAME AT BEGINNING immediately after connecting
+			_currentGame.SyncGame_command();
+		}
+		public void Run()
+		{
 			while (Running) {
-				//------------------------------------------------- server run cycle
-				bool newconnection = false;
-				// Handle any new clients
-				if (tcpListener.Pending()) {
-					newConnectionTasks.Add(_handleNewConnection());
-					newconnection = true;
-				}
-					
-				//Start a game for the first new connection
-				if (newconnection) {
-					//add networked player to game
-					_currentGame.AddPlayer(tcpClient_other);
-
-					// Start the game in a new thread!
-					Console.WriteLine("Starting a \"{0}\" game.", _currentGame.Name);
-					this.gameThread = new Thread(new ThreadStart(_currentGame.Run));
-					gameThread.Start();
-					
-					
-					//SYNC GAME AT BEGINNING immediately after connecting
-					_currentGame.SyncGame_command();
-
-				}
 				
 				//------------------------------------------------- client run cycle
 				
 				// Check for new packets
-				messagetasks.Add(this.client._handleIncomingPackets());
+				client._handleIncomingPackets();
 				
 				//poll for local player input changes
 				if (client.changed_local) {
@@ -135,7 +136,7 @@ namespace AsyncMultithreadClientServer
 				}
 
 				// Make sure that we didn't have a graceless disconnect
-				if (IsDisconnected(this.client.tcpClient) 
+				if (IsDisconnected(this.client.tcpClient)
 				    && !this.client._clientRequestedDisconnect) {
 					Running = false;
 					Console.WriteLine("Other server disconnected from us ungracefully.");
@@ -148,8 +149,6 @@ namespace AsyncMultithreadClientServer
 			}
 
 			//-------------------------------------------------------- server STOP
-			// If client connected after loop exited, allow 1 second to finish task.
-			Task.WaitAll(newConnectionTasks.ToArray(), 1000);
 
 			// Shutdown all of the threads, regardless if they are done or not
 			if (gameThread != null)
@@ -166,24 +165,21 @@ namespace AsyncMultithreadClientServer
 			Console.WriteLine("The server has been shut down.");
 			
 			//-------------------------------------------------------- client STOP
-			
-			// Just incase we have anymore packets, give them one second to be processed
-			Task.WaitAll(messagetasks.ToArray(), 1000);
 
 			// Cleanup
 			this.client._cleanupNetworkResources();
 		}
 
 		// Awaits for a new connection, sets it to networked client
-		private async Task _handleNewConnection()
+		private void _handleNewConnection()
 		{
 			// Get the new client using a Future
-			this.tcpClient_other = await tcpListener.AcceptTcpClientAsync();
+			this.tcpClient_other = tcpListener.AcceptTcpClient();
 			Console.WriteLine("New connection from {0}.", tcpClient_other.Client.RemoteEndPoint);
 
 			// Send a welcome message
 			string msg = String.Format("Welcome to the \"{0}\" server.\n", Name);
-			await Packet.SendPacket(tcpClient_other.GetStream(), new Packet("message", msg));
+			Packet.SendPacket(tcpClient_other.GetStream(), new Packet("message", msg));
 		}
 
 		// Checks if a client has disconnected ungracefully
@@ -198,7 +194,7 @@ namespace AsyncMultithreadClientServer
 			}
 		}
 		// Gracefully disconnect a TcpClient
-		public void DisconnectClient(TcpClient client, string message = "")
+		public void DisconnectClient(TcpClient client, string message)
 		{
 			Console.WriteLine("Disconnecting the client from {0}.", client.Client.RemoteEndPoint);
 
@@ -207,13 +203,11 @@ namespace AsyncMultithreadClientServer
 				message = "Goodbye.";
 
 			// Send the "bye" message
-			Task byePacket = Packet.SendPacket(client.GetStream(), new Packet("bye", message));
+			Packet.SendPacket(client.GetStream(), new Packet("bye", message));
 
 			// Give the client some time to send and process the graceful disconnect
 			Thread.Sleep(500);
 
-			// Cleanup resources on our end
-			byePacket.GetAwaiter().GetResult();
 			CleanupClient(client);
 		}
 		
@@ -227,7 +221,7 @@ namespace AsyncMultithreadClientServer
 
 		// Will get a single packet from a TcpClient
 		// Returns null if no data available or issue
-		public async Task<Packet> ReceivePacket(TcpClient client)
+		public Packet ReceivePacket(TcpClient client)
 		{
 			Packet packet = null;
 			try {

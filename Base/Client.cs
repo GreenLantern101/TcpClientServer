@@ -4,10 +4,9 @@ using System.Net.Sockets;
 using System.Net;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 
-namespace AsyncMultithreadClientServer
+namespace SyncClientServer
 {
 	//essentially a wrapper over TcpClient
 	public class Client
@@ -20,8 +19,7 @@ namespace AsyncMultithreadClientServer
 
 		// Messaging
 		private NetworkStream _msgStream = null;
-		private Dictionary<string, Func<string, Task>> _commandHandlers = new Dictionary<string, Func<string, Task>>();
-
+		
 		public Client()
 		{
 			tcpClient = new TcpClient(AddressFamily.InterNetwork);
@@ -30,9 +28,9 @@ namespace AsyncMultithreadClientServer
 			string[] lines = File.ReadAllLines(Directory.GetCurrentDirectory() + "/../../config.txt");	
 			ipAddress_other = IPAddress.Parse(lines[0]);
 			Port = int.Parse(lines[1]);
+			
 		}
-		// Connects to the games server
-		public void Connect()
+		void ClientConnectLoop()
 		{
 			//keep trying to connect to server, once per second
 			while (!tcpClient.Connected) {
@@ -45,20 +43,21 @@ namespace AsyncMultithreadClientServer
 					Thread.Sleep(3000);
 				}
 			}
-
 			// check that we've connected
 			if (tcpClient.Connected) {
 				Console.WriteLine("Connected to server at {0}.", tcpClient.Client.RemoteEndPoint);
 
 				// Get the message stream
 				_msgStream = tcpClient.GetStream();
-
-				// Hook up packet command handlers
-				_commandHandlers["bye"] = _handleBye;
-				_commandHandlers["message"] = _handleMessage;
-				_commandHandlers["input"] = _handleInput;
-				_commandHandlers["sync"] = _handleSync;
 			}
+		}
+		// Connects to the games server
+		public void Connect()
+		{
+			Thread client_conn = new Thread(new ThreadStart(ClientConnectLoop));
+			client_conn.Start();
+			//Thread.Sleep(1);
+			//client_conn.Join();
 		}
 
 		// Requests a disconnect, will send "bye" message
@@ -67,7 +66,7 @@ namespace AsyncMultithreadClientServer
 		{
 			Console.WriteLine("Disconnecting...");
 			_clientRequestedDisconnect = true;
-			Packet.SendPacket(this._msgStream, new Packet("bye")).GetAwaiter().GetResult();
+			Packet.SendPacket(this._msgStream, new Packet("bye", ""));
 		}
 		public void _cleanupNetworkResources()
 		{
@@ -80,69 +79,74 @@ namespace AsyncMultithreadClientServer
 
 		// Checks for new incoming messages and handles them
 		// Handles one Packet at a time, even if more than one is in the memory stream
-		public async Task _handleIncomingPackets()
+		public void _handleIncomingPackets()
 		{
-			Packet packet = new Packet();
-			try {
-				// Check for new incoming messages
-				if (tcpClient.Available > 0) {
+			Packet packet = new Packet("", "");
+			// Handle incoming messages
+			if (tcpClient.Available > 0) {
 					
-					packet = Packet.getPacketFromStream(_msgStream);
+				packet = Packet.getPacketFromStream(_msgStream);
 
-					// Dispatch it
-					try {
-						await _commandHandlers[packet.Command](packet.Message);
-					} catch (KeyNotFoundException) {
-					}
+				switch (packet.Command) {
+					case "bye":
+						_handleBye(packet.Message);
+						break;
+					case "input":
+						_handleInput(packet.Message);
+						break;
+					case "message":
+						_handleMessage(packet.Message);
+						break;
+					case "sync":
+						_handleSync(packet.Message);
+						break;
+					default:
+						Console.WriteLine("Invalid packet command received.");
+						break;
+						
 				}
-			} catch (Exception e) {
 			}
 		}
 
 		#region Command Handlers
-		private Task _handleBye(string message)
+		private void _handleBye(string message)
 		{
 			Console.WriteLine(message);
-			return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
 		}
 
 		// Just prints out a message sent from the server
-		private Task _handleMessage(string message)
+		private void _handleMessage(string message)
 		{
 			Console.Write(message);
-			return Task.FromResult(0);  // Task.CompletedTask exists in .NET v4.6
 		}
-		private Task _handleSync(string message)
+		private void _handleSync(string message)
 		{
 			this.changed_remote = true;
 			this.action_remote = message;
-			
-			return Task.FromResult(0);
 		}
 
 		// Gets input from the user and sends it to the server
-		private async Task _handleInput(string message)
+		private bool _handleInput(string message)
 		{
 			// Print the prompt and get a response to send
 			Console.Write(message);
 			
 			string responseMsg = Console.ReadLine();
 			
-			
 			//NOTE: for some reason, calling synchronous game method here doesn't work...
 			this.changed_local = true;
 			this.action_local = responseMsg;
 			
-			
 			// Send the response
 			Packet resp = new Packet("input", responseMsg);
+			Packet.SendPacket(this._msgStream, resp);
 			
-			await Packet.SendPacket(this._msgStream, resp);
+			return true;
 		}
 		public bool changed_local = false;
 		public string action_local = "";
 		public bool changed_remote = false;
 		public string action_remote = "";
-		#endregion // Command Handlers
+		#endregion
 	}
 }
